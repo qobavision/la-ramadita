@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 /**
  * Representación pública de un usuario. Nunca incluye el hash de contraseña.
  *
- * {@code rol} es la constante interna (DUENO) y {@code rolNombre} el valor
- * oficial tal como está en base de datos (DUEÑO).
+ * {@code rol} es la constante interna (p. ej. ADMINISTRADOR) y {@code rolNombre}
+ * el valor tal como está en base de datos. Hoy coinciden; se mantienen ambos
+ * para que el frontend use siempre {@code rol} en lógica y {@code rolNombre}
+ * solo para mostrar.
  */
 public record UsuarioResponse(
 		Integer id,

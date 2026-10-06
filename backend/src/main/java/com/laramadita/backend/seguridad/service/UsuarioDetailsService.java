@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Puente entre la tabla {@code usuarios} y Spring Security.
  *
- * La única autoridad es el rol oficial, expresado como {@code ROLE_DUENO},
+ * La única autoridad es el rol oficial, expresado como {@code ROLE_ADMINISTRADOR},
  * {@code ROLE_SUPERVISOR}, {@code ROLE_MESERO}, {@code ROLE_COCINA} o
  * {@code ROLE_CAJA}. Un usuario inactivo se marca como deshabilitado, lo que
  * impide tanto el login como el uso de tokens ya emitidos.

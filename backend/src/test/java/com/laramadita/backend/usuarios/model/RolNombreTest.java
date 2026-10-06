@@ -8,13 +8,9 @@ import org.junit.jupiter.api.Test;
 class RolNombreTest {
 
 	@Test
-	void duenoSeMapeaAlValorOficialConEnie() {
-		assertThat(RolNombre.DUENO.valorBaseDatos()).isEqualTo("DUE\u00D1O");
-		assertThat(RolNombre.desdeBaseDatos("DUE\u00D1O")).isEqualTo(RolNombre.DUENO);
-	}
-
-	@Test
-	void losDemasRolesCoincidenLiteralmenteConLaBase() {
+	void losRolesCoincidenLiteralmenteConLaBase() {
+		assertThat(RolNombre.ADMINISTRADOR.valorBaseDatos()).isEqualTo("ADMINISTRADOR");
+		assertThat(RolNombre.desdeBaseDatos("ADMINISTRADOR")).isEqualTo(RolNombre.ADMINISTRADOR);
 		assertThat(RolNombre.SUPERVISOR.valorBaseDatos()).isEqualTo("SUPERVISOR");
 		assertThat(RolNombre.MESERO.valorBaseDatos()).isEqualTo("MESERO");
 		assertThat(RolNombre.COCINA.valorBaseDatos()).isEqualTo("COCINA");
@@ -22,18 +18,23 @@ class RolNombreTest {
 	}
 
 	@Test
-	void laAutoridadDeSpringSecurityUsaLaConstanteAscii() {
-		assertThat(RolNombre.DUENO.authority()).isEqualTo("ROLE_DUENO");
+	void laAutoridadDeSpringSecurityUsaLaConstante() {
+		assertThat(RolNombre.ADMINISTRADOR.authority()).isEqualTo("ROLE_ADMINISTRADOR");
 		assertThat(RolNombre.COCINA.authority()).isEqualTo("ROLE_COCINA");
 	}
 
 	@Test
-	void desdeAceptaConstanteOValorDeBaseSinDistinguirMayusculas() {
-		assertThat(RolNombre.desde("dueno")).contains(RolNombre.DUENO);
-		assertThat(RolNombre.desde("DUE\u00D1O")).contains(RolNombre.DUENO);
+	void desdeAceptaLaConstanteSinDistinguirMayusculasNiEspacios() {
+		assertThat(RolNombre.desde("administrador")).contains(RolNombre.ADMINISTRADOR);
 		assertThat(RolNombre.desde("  caja ")).contains(RolNombre.CAJA);
 		assertThat(RolNombre.desde("COCINERO")).isEmpty();
 		assertThat(RolNombre.desde(null)).isEmpty();
+	}
+
+	@Test
+	void elAntiguoNombreDuenoYaNoEsValido() {
+		assertThat(RolNombre.desde("DUENO")).isEmpty();
+		assertThat(RolNombre.desde("DUE\u00D1O")).isEmpty();
 	}
 
 	@Test

@@ -20,12 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Administración de usuarios. Solo DUEÑO y SUPERVISOR acceden; las reglas
- * finas (qué puede hacer un SUPERVISOR) se validan en {@link UsuarioService}.
+ * Administración de usuarios. Solo ADMINISTRADOR y SUPERVISOR acceden; las
+ * reglas finas (qué puede hacer un SUPERVISOR) se validan en {@link UsuarioService}.
  */
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@PreAuthorize("hasAnyRole('DUENO', 'SUPERVISOR')")
+@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'SUPERVISOR')")
 public class UsuarioController {
 
 	private final UsuarioService service;

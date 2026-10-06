@@ -95,8 +95,8 @@ public class Usuario {
 		this.activo = false;
 	}
 
-	public boolean esDueno() {
-		return rol != null && rol.getNombre() == RolNombre.DUENO;
+	public boolean esAdministrador() {
+		return rol != null && rol.getNombre() == RolNombre.ADMINISTRADOR;
 	}
 
 	/** Forma canónica del username: sin espacios en los extremos y en minúsculas. */
