@@ -1,1 +1,64 @@
-/* You can add global styles to this file, and also import other style files */
+// Estilos globales de La Ramadita.
+// Bootstrap 5 se carga desde angular.json (styles) para evitar las
+// advertencias de @import de Sass; aquí solo se definen la identidad visual
+// y ajustes sobre los componentes de Bootstrap que se usan en toda la app.
+
+:root {
+  // Paleta compartida (alineada con el diseño de referencia del equipo)
+  --lr-tinta: #28231e;
+  --lr-gris: #7d776e;
+  --lr-papel: #fffdf9;
+  --lr-fondo: #f6f4ef;
+  --lr-linea: #e8e2d9;
+  --lr-naranja: #d85b2b;
+  --lr-verde: #3c846c;
+  --lr-nav: #20251f;
+  --lr-rojo: #c9473a;
+  --lr-sombra: 0 10px 30px #49351c12;
+
+  // Bootstrap: color primario y foco con la identidad del proyecto
+  --bs-primary: var(--lr-naranja);
+  --bs-primary-rgb: 216, 91, 43;
+  --bs-body-color: var(--lr-tinta);
+  --bs-body-bg: var(--lr-fondo);
+  --bs-border-color: var(--lr-linea);
+  --bs-link-color: var(--lr-naranja);
+  --bs-link-hover-color: #b94a21;
+  --bs-body-font-family:
+    'Segoe UI', 'Nunito', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+}
+
+// Botón primario naranja (variables por componente de Bootstrap 5.3)
+.btn-primary {
+  --bs-btn-bg: var(--lr-naranja);
+  --bs-btn-border-color: var(--lr-naranja);
+  --bs-btn-hover-bg: #c44f23;
+  --bs-btn-hover-border-color: #c44f23;
+  --bs-btn-active-bg: #b94a21;
+  --bs-btn-active-border-color: #b94a21;
+  --bs-btn-disabled-bg: #e9a28a;
+  --bs-btn-disabled-border-color: #e9a28a;
+  --bs-btn-focus-shadow-rgb: 216, 91, 43;
+}
+
+.form-control:focus {
+  border-color: var(--lr-naranja);
+  box-shadow: 0 0 0 0.2rem rgba(216, 91, 43, 0.2);
+}
+
+// Rótulo pequeño en mayúsculas usado sobre los títulos
+.eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--lr-naranja);
+}

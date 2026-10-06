@@ -1,0 +1,192 @@
+:host {
+  display: block;
+}
+
+.login {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+}
+
+// Panel de marca (izquierda)
+.login__marca {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 64px;
+  color: #fff;
+  background: linear-gradient(145deg, #252b23, #192019);
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -180px;
+    bottom: -170px;
+    width: 520px;
+    height: 520px;
+    border: 1px solid #ffffff12;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 60px #ffffff05,
+      0 0 0 130px #ffffff03;
+  }
+
+  h1 {
+    margin: 10px 0 22px;
+    font-size: clamp(44px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  p {
+    max-width: 480px;
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.6;
+    color: #c8ccc5;
+  }
+
+  > small {
+    position: relative;
+    z-index: 1;
+    color: #8dd4ae;
+  }
+}
+
+.login__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #f5c58f;
+
+  svg {
+    width: 22px;
+    height: 22px;
+    color: var(--lr-naranja);
+  }
+}
+
+// Panel de formulario (derecha)
+.login__panel {
+  display: grid;
+  place-items: center;
+  padding: 40px;
+}
+
+.login__formulario {
+  width: min(420px, 100%);
+
+  h2 {
+    margin: 8px 0;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  .form-label {
+    margin: 22px 0 7px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .form-control {
+    padding: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+  }
+}
+
+.login__ayuda {
+  margin: 0 0 6px;
+  color: var(--lr-gris);
+}
+
+.login__password {
+  position: relative;
+
+  .form-control {
+    padding-right: 50px;
+  }
+
+  // El icono de error de Bootstrap chocaría con el botón del ojo
+  .form-control.is-invalid {
+    background-image: none;
+    padding-right: 50px;
+  }
+
+  // Bootstrap muestra .invalid-feedback solo tras un hermano .is-invalid
+  &.is-invalid + .invalid-feedback {
+    display: block;
+  }
+}
+
+.login__ojo {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--lr-gris);
+  line-height: 0;
+
+  svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+.login__ingresar {
+  margin-top: 24px;
+  padding: 12px 16px;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 7px 18px #d85b2b35;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    vertical-align: -3px;
+  }
+}
+
+.login__seguro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  color: var(--lr-gris);
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__marca {
+    display: none;
+  }
+
+  .login__panel {
+    min-height: 100dvh;
+    padding: 25px;
+  }
+
+  .login__formulario h2 {
+    font-size: 34px;
+  }
+}
