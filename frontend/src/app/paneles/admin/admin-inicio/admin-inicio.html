@@ -1,0 +1,31 @@
+<app-encabezado-pagina
+  eyebrow="Centro de gestión"
+  titulo="Resumen general"
+  descripcion="Vista consolidada de Restaurante y Pollería. Los indicadores se activarán a medida que se implementen los módulos."
+>
+  <span acciones class="lr-pildora">Restaurante · Pollería · Consolidado</span>
+</app-encabezado-pagina>
+
+<section class="lr-rejilla" aria-label="Indicadores">
+  @for (kpi of indicadores; track kpi.etiqueta) {
+    <article class="lr-kpi">
+      <span>{{ kpi.etiqueta }}</span>
+      <strong aria-label="Sin datos">—</strong>
+      <small>{{ kpi.nota }}</small>
+      <app-icono [nombre]="kpi.icono" [tamano]="18" />
+    </article>
+  }
+</section>
+
+<h2 class="lr-seccion">Módulos</h2>
+<section class="lr-rejilla lr-rejilla--ancha">
+  @for (m of modulos; track m.ruta) {
+    <app-tarjeta-modulo
+      [titulo]="m.etiqueta"
+      descripcion="Acceso completo para el administrador."
+      [icono]="m.icono"
+      [ruta]="m.ruta"
+      [disponible]="m.disponible === true"
+    />
+  }
+</section>

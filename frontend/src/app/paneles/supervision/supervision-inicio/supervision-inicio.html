@@ -1,0 +1,31 @@
+<app-encabezado-pagina
+  eyebrow="Supervisión"
+  titulo="Operación del día"
+  descripcion="Seguimiento de la atención, las compras y el inventario. Los indicadores se activarán con cada módulo."
+>
+  <span acciones class="lr-pildora">Restaurante · Pollería</span>
+</app-encabezado-pagina>
+
+<section class="lr-rejilla" aria-label="Indicadores">
+  @for (kpi of indicadores; track kpi.etiqueta) {
+    <article class="lr-kpi">
+      <span>{{ kpi.etiqueta }}</span>
+      <strong aria-label="Sin datos">—</strong>
+      <small>{{ kpi.nota }}</small>
+      <app-icono [nombre]="kpi.icono" [tamano]="18" />
+    </article>
+  }
+</section>
+
+<h2 class="lr-seccion">Áreas a supervisar</h2>
+<section class="lr-rejilla lr-rejilla--ancha">
+  @for (m of modulos; track m.ruta) {
+    <app-tarjeta-modulo
+      [titulo]="m.etiqueta"
+      descripcion="Acceso de supervisión según permisos del rol."
+      [icono]="m.icono"
+      [ruta]="m.ruta"
+      [disponible]="m.disponible === true"
+    />
+  }
+</section>

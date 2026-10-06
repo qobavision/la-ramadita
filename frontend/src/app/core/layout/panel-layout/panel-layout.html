@@ -1,0 +1,56 @@
+<div class="panel">
+  <aside class="panel__lateral">
+    <a class="panel__marca" routerLink="./" aria-label="Inicio del panel">
+      <span class="panel__logo"><app-icono nombre="llama" [tamano]="18" /> LR</span>
+      <span class="panel__marca-texto">
+        <b>La Ramadita</b>
+        <small>{{ config.nombre }}</small>
+      </span>
+    </a>
+
+    <nav class="panel__menu" aria-label="Secciones del panel">
+      @for (item of config.menu; track item.ruta) {
+        <a
+          class="panel__item"
+          [routerLink]="item.ruta || './'"
+          routerLinkActive="panel__item--activo"
+          [routerLinkActiveOptions]="{ exact: item.ruta === '' }"
+          [attr.title]="item.etiqueta"
+          [class.panel__item--pendiente]="item.disponible === false"
+        >
+          <app-icono [nombre]="item.icono" />
+          <span>{{ item.etiqueta }}</span>
+        </a>
+      }
+    </nav>
+
+    <small class="panel__estado">● Red local</small>
+  </aside>
+
+  <div class="panel__cuerpo">
+    <header class="panel__superior">
+      <div class="panel__contexto">
+        <span class="eyebrow">{{ config.eyebrow }}</span>
+        <strong>{{ config.nombre }}</strong>
+      </div>
+
+      @if (usuario(); as u) {
+        <div class="panel__usuario">
+          <span class="panel__avatar" aria-hidden="true">{{ iniciales() }}</span>
+          <span class="panel__quien">
+            <b>{{ nombreCompleto() }}</b>
+            <small>{{ rolEtiqueta() }} · {{ u.username }}</small>
+          </span>
+          <button type="button" class="panel__salir" (click)="cerrarSesion()" title="Cerrar sesión">
+            <app-icono nombre="salir" [tamano]="18" />
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      }
+    </header>
+
+    <main class="panel__contenido">
+      <router-outlet />
+    </main>
+  </div>
+</div>
