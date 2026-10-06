@@ -242,6 +242,35 @@ El último comando verifica que exista la contraseña **sin mostrarla**.
 
 Nunca escribas una contraseña real dentro de `application.properties` ni la subas a GitHub.
 
+## 7.1 Variables de seguridad (módulo M01)
+
+El backend también necesita estas variables. Igual que las de conexión, se configuran una vez con `setx` y **nunca se escriben en archivos del repositorio**.
+
+| Variable | Obligatoria | Para qué sirve |
+|---|---|---|
+| `JWT_SECRET` | Sí | Clave con la que se firman los tokens de sesión. Debe tener **al menos 32 caracteres**. Si falta, el backend no arranca. |
+| `JWT_EXPIRATION_MINUTES` | No | Duración del token en minutos. Si no se define, se usan 480 (8 horas). |
+| `APP_DUENO_USERNAME` | Solo la primera vez | Usuario del DUEÑO inicial. |
+| `APP_DUENO_PASSWORD` | Solo la primera vez | Contraseña del DUEÑO inicial (mínimo 8 caracteres). |
+| `CORS_ALLOWED_ORIGINS` | No | Dirección desde la que se sirve el frontend. Si no se define, se usa `http://localhost:4200`. En red local, poner la IP de la PC que sirve Angular. |
+
+Ejemplo en CMD (reemplaza los valores por los tuyos; no uses estos):
+
+```bat
+setx JWT_SECRET "UNA_CLAVE_LARGA_Y_ALEATORIA_DE_32_O_MAS_CARACTERES"
+setx APP_DUENO_USERNAME "TU_USUARIO_DUENO"
+setx APP_DUENO_PASSWORD "TU_PASSWORD_DUENO_SEGURA"
+```
+
+Cómo funciona el DUEÑO inicial:
+
+- El backend **solo** crea ese usuario cuando la tabla `usuarios` está vacía y las dos variables existen.
+- Si la tabla está vacía y faltan las variables, el backend arranca igual y muestra una advertencia en consola.
+- Cuando ya existe al menos un usuario, las variables se ignoran y puedes quitarlas de tu computadora.
+- No existe ninguna contraseña por defecto en el código.
+
+Después de usar `setx`, cierra CMD y abre una ventana nueva.
+
 ---
 
 # 8. Levantar el proyecto por primera vez
