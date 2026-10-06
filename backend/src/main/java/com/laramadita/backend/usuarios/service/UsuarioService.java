@@ -22,11 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * Reglas aplicadas en backend (AGENTS.md §7: no confiar solo en el frontend):
  * <ul>
- * <li>DUEÑO administra cualquier usuario.</li>
- * <li>SUPERVISOR administra usuarios, pero no puede crear usuarios DUEÑO,
- * convertir usuarios a DUEÑO ni modificar/activar/desactivar usuarios DUEÑO.</li>
+ * <li>ADMINISTRADOR administra cualquier usuario.</li>
+ * <li>SUPERVISOR administra usuarios, pero no puede crear usuarios ADMINISTRADOR,
+ * convertir usuarios a ADMINISTRADOR ni modificar/activar/desactivar usuarios
+ * ADMINISTRADOR.</li>
  * <li>Un usuario no puede desactivarse a sí mismo.</li>
- * <li>Siempre debe quedar al menos un DUEÑO activo.</li>
+ * <li>Siempre debe quedar al menos un ADMINISTRADOR activo.</li>
  * <li>La baja es lógica; nunca se elimina físicamente (RN-33).</li>
  * </ul>
  * El acceso a estos métodos ya está restringido por rol en el controlador.
@@ -101,10 +102,10 @@ public class UsuarioService {
 			throw new ReglaNegocioException("Un usuario no puede desactivarse a sí mismo");
 		}
 
-		boolean dejaDeSerDuenoActivo = objetivo.esDueno() && objetivo.isActivo()
-				&& (rolNuevo != RolNombre.DUENO || !r.activo());
-		if (dejaDeSerDuenoActivo) {
-			asegurarOtroDuenoActivo(objetivo);
+		boolean dejaDeSerAdministradorActivo = objetivo.esAdministrador() && objetivo.isActivo()
+				&& (rolNuevo != RolNombre.ADMINISTRADOR || !r.activo());
+		if (dejaDeSerAdministradorActivo) {
+			asegurarOtroAdministradorActivo(objetivo);
 		}
 
 		objetivo.actualizarDatos(username, r.nombre().trim(), limpiar(r.apellido()), rolActivo(rolNuevo));
@@ -128,8 +129,8 @@ public class UsuarioService {
 		if (objetivo.getId().equals(actor.getId())) {
 			throw new ReglaNegocioException("Un usuario no puede desactivarse a sí mismo");
 		}
-		if (objetivo.esDueno() && objetivo.isActivo()) {
-			asegurarOtroDuenoActivo(objetivo);
+		if (objetivo.esAdministrador() && objetivo.isActivo()) {
+			asegurarOtroAdministradorActivo(objetivo);
 		}
 		objetivo.desactivar();
 		usuarios.save(objetivo);
@@ -150,26 +151,27 @@ public class UsuarioService {
 	// Reglas
 	// ------------------------------------------------------------------
 
-	/** SUPERVISOR no puede tocar usuarios DUEÑO. DUEÑO puede con cualquiera. */
+	/** SUPERVISOR no puede tocar usuarios ADMINISTRADOR. ADMINISTRADOR puede con cualquiera. */
 	private void verificarPuedeAdministrar(Usuario actor, Usuario objetivo) {
-		if (!actor.esDueno() && objetivo.esDueno()) {
+		if (!actor.esAdministrador() && objetivo.esAdministrador()) {
 			throw new OperacionNoAutorizadaException(
-					"Solo un usuario DUE\u00D1O puede modificar a otro usuario DUE\u00D1O");
+					"Solo un usuario ADMINISTRADOR puede modificar a otro usuario ADMINISTRADOR");
 		}
 	}
 
-	/** Solo DUEÑO puede crear o asignar el rol DUEÑO. */
+	/** Solo ADMINISTRADOR puede crear o asignar el rol ADMINISTRADOR. */
 	private void verificarPuedeAsignarRol(Usuario actor, RolNombre rol) {
-		if (rol == RolNombre.DUENO && !actor.esDueno()) {
+		if (rol == RolNombre.ADMINISTRADOR && !actor.esAdministrador()) {
 			throw new OperacionNoAutorizadaException(
-					"Solo un usuario DUE\u00D1O puede asignar el rol DUE\u00D1O");
+					"Solo un usuario ADMINISTRADOR puede asignar el rol ADMINISTRADOR");
 		}
 	}
 
-	private void asegurarOtroDuenoActivo(Usuario objetivo) {
-		long otros = usuarios.contarActivosPorRolExcluyendo(RolNombre.DUENO, objetivo.getId());
+	private void asegurarOtroAdministradorActivo(Usuario objetivo) {
+		long otros = usuarios.contarActivosPorRolExcluyendo(RolNombre.ADMINISTRADOR, objetivo.getId());
 		if (otros == 0) {
-			throw new ReglaNegocioException("Debe permanecer al menos un usuario DUE\u00D1O activo en el sistema");
+			throw new ReglaNegocioException(
+					"Debe permanecer al menos un usuario ADMINISTRADOR activo en el sistema");
 		}
 	}
 

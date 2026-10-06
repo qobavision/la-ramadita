@@ -15,17 +15,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Crea el primer usuario DUEÑO cuando la tabla {@code usuarios} está vacía.
+ * Crea el primer usuario ADMINISTRADOR cuando la tabla {@code usuarios} está vacía.
  *
  * Las credenciales provienen exclusivamente de las variables de entorno
- * APP_DUENO_USERNAME y APP_DUENO_PASSWORD. No existen valores por defecto:
+ * APP_ADMIN_USERNAME y APP_ADMIN_PASSWORD. No existen valores por defecto:
  * si faltan, solo se registra una advertencia. Una vez que hay usuarios, las
  * variables se ignoran, por lo que pueden retirarse del entorno.
  */
 @Component
-public class DuenoInicial implements ApplicationRunner {
+public class AdministradorInicial implements ApplicationRunner {
 
-	private static final Logger log = LoggerFactory.getLogger(DuenoInicial.class);
+	private static final Logger log = LoggerFactory.getLogger(AdministradorInicial.class);
 	private static final int LONGITUD_MINIMA_PASSWORD = 8;
 
 	private final UsuarioRepository usuarios;
@@ -34,9 +34,9 @@ public class DuenoInicial implements ApplicationRunner {
 	private final String username;
 	private final String password;
 
-	public DuenoInicial(UsuarioRepository usuarios, RolRepository roles, PasswordEncoder encoder,
-			@Value("${app.security.dueno-inicial.username}") String username,
-			@Value("${app.security.dueno-inicial.password}") String password) {
+	public AdministradorInicial(UsuarioRepository usuarios, RolRepository roles, PasswordEncoder encoder,
+			@Value("${app.security.administrador-inicial.username}") String username,
+			@Value("${app.security.administrador-inicial.password}") String password) {
 		this.usuarios = usuarios;
 		this.roles = roles;
 		this.encoder = encoder;
@@ -49,28 +49,29 @@ public class DuenoInicial implements ApplicationRunner {
 	public void run(ApplicationArguments args) {
 		if (usuarios.count() > 0) {
 			if (!username.isBlank() || !password.isBlank()) {
-				log.info("Ya existen usuarios registrados; se ignoran APP_DUENO_USERNAME y APP_DUENO_PASSWORD.");
+				log.info("Ya existen usuarios registrados; se ignoran APP_ADMIN_USERNAME y APP_ADMIN_PASSWORD.");
 			}
 			return;
 		}
 
 		if (username.isBlank() || password.isBlank()) {
 			log.warn("No existe ningún usuario en el sistema. Defina las variables de entorno "
-					+ "APP_DUENO_USERNAME y APP_DUENO_PASSWORD y reinicie el backend para crear el DUE\u00D1O inicial.");
+					+ "APP_ADMIN_USERNAME y APP_ADMIN_PASSWORD y reinicie el backend para crear el ADMINISTRADOR inicial.");
 			return;
 		}
 		if (password.length() < LONGITUD_MINIMA_PASSWORD) {
-			log.error("APP_DUENO_PASSWORD debe tener al menos {} caracteres. No se creó el DUE\u00D1O inicial.",
+			log.error("APP_ADMIN_PASSWORD debe tener al menos {} caracteres. No se creó el ADMINISTRADOR inicial.",
 					LONGITUD_MINIMA_PASSWORD);
 			return;
 		}
 
-		Rol rol = roles.findByNombre(RolNombre.DUENO)
+		Rol rol = roles.findByNombre(RolNombre.ADMINISTRADOR)
 				.orElseThrow(() -> new IllegalStateException(
-						"No existe el rol DUE\u00D1O en la tabla roles. Verifique la migración V1."));
-		Usuario dueno = new Usuario(Usuario.normalizarUsername(username), encoder.encode(password),
-				"Due\u00F1o", null, rol);
-		usuarios.save(dueno);
-		log.info("Usuario DUE\u00D1O inicial '{}' creado a partir de variables de entorno.", dueno.getUsername());
+						"No existe el rol ADMINISTRADOR en la tabla roles. Verifique las migraciones V1 y V2."));
+		Usuario administrador = new Usuario(Usuario.normalizarUsername(username), encoder.encode(password),
+				"Administrador", null, rol);
+		usuarios.save(administrador);
+		log.info("Usuario ADMINISTRADOR inicial '{}' creado a partir de variables de entorno.",
+				administrador.getUsername());
 	}
 }

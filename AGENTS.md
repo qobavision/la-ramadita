@@ -328,7 +328,7 @@ Los roles del sistema son:
 
 
 
-\- DUEÑO
+\- ADMINISTRADOR (rol con control total; en la documentación original aparecía como DUEÑO y fue renombrado por decisión del equipo mediante la migración V2)
 
 \- SUPERVISOR
 
@@ -494,11 +494,13 @@ La fuente oficial de migraciones es:
 
 
 
-Actualmente existe:
+Actualmente existen:
 
 
 
 `V1\\\_\\\_estructura\\\_inicial.sql`
+
+`V2\\\_\\\_renombrar\\\_rol\\\_dueno\\\_a\\\_administrador.sql`
 
 
 

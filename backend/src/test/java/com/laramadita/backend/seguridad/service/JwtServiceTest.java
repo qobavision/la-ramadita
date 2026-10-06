@@ -65,7 +65,7 @@ class JwtServiceTest {
 		String secretoB = claveAleatoria();
 		JwtService service = new JwtService(new NimbusJwtEncoder(new ImmutableSecret<>(clave(secretoA))),
 				new JwtProperties(secretoA, 30));
-		String token = service.emitir(usuario(1, "dueno", RolNombre.DUENO, true)).valor();
+		String token = service.emitir(usuario(1, "admin", RolNombre.ADMINISTRADOR, true)).valor();
 
 		NimbusJwtDecoder decoderB = NimbusJwtDecoder.withSecretKey(clave(secretoB)).macAlgorithm(MacAlgorithm.HS256)
 				.build();

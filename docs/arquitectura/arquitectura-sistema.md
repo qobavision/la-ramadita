@@ -440,7 +440,7 @@ Roles principales:
 
 
 
-\- DUEÑO
+\- ADMINISTRADOR
 
 \- SUPERVISOR
 

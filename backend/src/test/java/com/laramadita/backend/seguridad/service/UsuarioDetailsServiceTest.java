@@ -22,13 +22,13 @@ class UsuarioDetailsServiceTest {
 
 	@Test
 	void construyeLaAutoridadDelRolOficialEnFormatoAscii() {
-		when(usuarios.findByUsername("dueno")).thenReturn(Optional.of(usuario(1, "dueno", RolNombre.DUENO, true)));
+		when(usuarios.findByUsername("admin")).thenReturn(Optional.of(usuario(1, "admin", RolNombre.ADMINISTRADOR, true)));
 
-		UserDetails d = service.loadUserByUsername("  DUENO ");
+		UserDetails d = service.loadUserByUsername("  ADMIN ");
 
-		assertThat(d.getUsername()).isEqualTo("dueno");
+		assertThat(d.getUsername()).isEqualTo("admin");
 		assertThat(d.getPassword()).isEqualTo(UsuariosFixture.HASH_FICTICIO);
-		assertThat(d.getAuthorities()).extracting(GrantedAuthority::getAuthority).containsExactly("ROLE_DUENO");
+		assertThat(d.getAuthorities()).extracting(GrantedAuthority::getAuthority).containsExactly("ROLE_ADMINISTRADOR");
 		assertThat(d.isEnabled()).isTrue();
 	}
 

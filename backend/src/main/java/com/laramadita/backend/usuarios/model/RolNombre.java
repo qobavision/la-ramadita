@@ -8,12 +8,14 @@ import java.util.stream.Collectors;
 /**
  * Roles oficiales del sistema (AGENTS.md, sección 7).
  *
- * La constante Java es ASCII (DUENO) y se mapea al valor almacenado en la
- * tabla {@code roles} sembrada por V1 (DUEÑO). El resto coincide literalmente.
+ * La constante Java coincide con el valor almacenado en la tabla
+ * {@code roles} (sembrada por V1 y ajustada por V2). Se conserva el mapeo
+ * explícito por si en el futuro algún valor de base de datos difiere de la
+ * constante (por ejemplo, por acentos o eñes).
  */
 public enum RolNombre {
 
-	DUENO("DUE\u00D1O"),
+	ADMINISTRADOR("ADMINISTRADOR"),
 	SUPERVISOR("SUPERVISOR"),
 	MESERO("MESERO"),
 	COCINA("COCINA"),
@@ -32,7 +34,7 @@ public enum RolNombre {
 		return valorBaseDatos;
 	}
 
-	/** Autoridad usada por Spring Security, por ejemplo {@code ROLE_DUENO}. */
+	/** Autoridad usada por Spring Security, por ejemplo {@code ROLE_ADMINISTRADOR}. */
 	public String authority() {
 		return PREFIJO_AUTHORITY + name();
 	}
@@ -46,8 +48,8 @@ public enum RolNombre {
 	}
 
 	/**
-	 * Interpreta texto proveniente de la API. Acepta tanto la constante
-	 * (DUENO) como el valor de base de datos (DUEÑO), sin distinguir mayúsculas.
+	 * Interpreta texto proveniente de la API. Acepta tanto la constante como el
+	 * valor de base de datos, sin distinguir mayúsculas ni espacios.
 	 */
 	public static Optional<RolNombre> desde(String texto) {
 		if (texto == null) {

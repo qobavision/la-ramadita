@@ -138,7 +138,7 @@ El sistema debe:
 
 \- manejar los roles:
 
-&#x20; - DUEÑO;
+&#x20; - ADMINISTRADOR;
 
 &#x20; - SUPERVISOR;
 

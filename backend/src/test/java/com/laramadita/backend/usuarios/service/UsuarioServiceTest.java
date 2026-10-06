@@ -48,8 +48,8 @@ class UsuarioServiceTest {
 
 	UsuarioService service;
 
-	Usuario dueno;
-	Usuario otroDueno;
+	Usuario admin;
+	Usuario otroAdmin;
 	Usuario supervisor;
 	Usuario mesero;
 
@@ -57,12 +57,12 @@ class UsuarioServiceTest {
 	void preparar() {
 		service = new UsuarioService(usuarios, roles, encoder);
 
-		dueno = usuario(1, "dueno", RolNombre.DUENO, true);
-		otroDueno = usuario(2, "dueno2", RolNombre.DUENO, true);
+		admin = usuario(1, "admin", RolNombre.ADMINISTRADOR, true);
+		otroAdmin = usuario(2, "admin2", RolNombre.ADMINISTRADOR, true);
 		supervisor = usuario(3, "supervisora", RolNombre.SUPERVISOR, true);
 		mesero = usuario(4, "mesero1", RolNombre.MESERO, true);
 
-		for (Usuario u : new Usuario[] { dueno, otroDueno, supervisor, mesero }) {
+		for (Usuario u : new Usuario[] { admin, otroAdmin, supervisor, mesero }) {
 			when(usuarios.findByUsername(u.getUsername())).thenReturn(Optional.of(u));
 			when(usuarios.findById(u.getId())).thenReturn(Optional.of(u));
 		}
@@ -88,7 +88,7 @@ class UsuarioServiceTest {
 
 		@Test
 		void hasheaLaPasswordYNormalizaElUsername() {
-			UsuarioResponse r = service.crear(alta("  Nuevo.Mesero ", "MESERO"), "dueno");
+			UsuarioResponse r = service.crear(alta("  Nuevo.Mesero ", "MESERO"), "admin");
 
 			ArgumentCaptor<Usuario> guardado = ArgumentCaptor.forClass(Usuario.class);
 			verify(usuarios).save(guardado.capture());
@@ -101,46 +101,46 @@ class UsuarioServiceTest {
 		}
 
 		@Test
-		void aceptaElRolEscritoComoEnLaBaseDeDatos() {
-			UsuarioResponse r = service.crear(alta("nuevo.dueno", "DUE\u00D1O"), "dueno");
-			assertThat(r.rol()).isEqualTo("DUENO");
-			assertThat(r.rolNombre()).isEqualTo("DUE\u00D1O");
+		void aceptaElRolEnMinusculasYDevuelveLaConstanteYElNombreOficial() {
+			UsuarioResponse r = service.crear(alta("nuevo.admin", "administrador"), "admin");
+			assertThat(r.rol()).isEqualTo("ADMINISTRADOR");
+			assertThat(r.rolNombre()).isEqualTo("ADMINISTRADOR");
 		}
 
 		@Test
 		void rechazaUnRolInexistenteComoCocinero() {
-			assertThatThrownBy(() -> service.crear(alta("x.y", "COCINERO"), "dueno"))
+			assertThatThrownBy(() -> service.crear(alta("x.y", "COCINERO"), "admin"))
 					.isInstanceOf(ReglaNegocioException.class)
-					.hasMessageContaining("DUENO, SUPERVISOR, MESERO, COCINA, CAJA");
+					.hasMessageContaining("ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA");
 		}
 
 		@Test
 		void rechazaUsernameDuplicado() {
 			when(usuarios.existsByUsername("mesero1")).thenReturn(true);
-			assertThatThrownBy(() -> service.crear(alta("MESERO1", "MESERO"), "dueno"))
+			assertThatThrownBy(() -> service.crear(alta("MESERO1", "MESERO"), "admin"))
 					.isInstanceOf(ConflictoException.class);
 			verify(usuarios, never()).save(any());
 		}
 
 		@Test
-		void elSupervisorPuedeCrearMeseroPeroNoDueno() {
+		void elSupervisorPuedeCrearMeseroPeroNoAdministrador() {
 			service.crear(alta("mesero.nuevo", "MESERO"), "supervisora");
 			verify(usuarios).save(any());
 
-			assertThatThrownBy(() -> service.crear(alta("dueno.nuevo", "DUENO"), "supervisora"))
+			assertThatThrownBy(() -> service.crear(alta("admin.nuevo", "ADMINISTRADOR"), "supervisora"))
 					.isInstanceOf(OperacionNoAutorizadaException.class);
 		}
 
 		@Test
-		void elDuenoPuedeCrearOtroDueno() {
-			UsuarioResponse r = service.crear(alta("dueno.nuevo", "DUENO"), "dueno");
-			assertThat(r.rol()).isEqualTo("DUENO");
+		void elAdministradorPuedeCrearOtroAdministrador() {
+			UsuarioResponse r = service.crear(alta("admin.nuevo", "ADMINISTRADOR"), "admin");
+			assertThat(r.rol()).isEqualTo("ADMINISTRADOR");
 		}
 
 		@Test
 		void puedeCrearseInactivoDesdeElInicio() {
 			UsuarioResponse r = service.crear(
-					new UsuarioRequest("inactivo", "Clave2026!", "Nombre", null, "CAJA", false), "dueno");
+					new UsuarioRequest("inactivo", "Clave2026!", "Nombre", null, "CAJA", false), "admin");
 			assertThat(r.activo()).isFalse();
 		}
 	}
@@ -149,14 +149,14 @@ class UsuarioServiceTest {
 	class Actualizar {
 
 		@Test
-		void elSupervisorNoPuedeModificarAUnDueno() {
-			assertThatThrownBy(() -> service.actualizar(dueno.getId(), edicion(dueno, "DUENO", true), "supervisora"))
+		void elSupervisorNoPuedeModificarAUnAdministrador() {
+			assertThatThrownBy(() -> service.actualizar(admin.getId(), edicion(admin, "ADMINISTRADOR", true), "supervisora"))
 					.isInstanceOf(OperacionNoAutorizadaException.class);
 		}
 
 		@Test
-		void elSupervisorNoPuedeConvertirAUnMeseroEnDueno() {
-			assertThatThrownBy(() -> service.actualizar(mesero.getId(), edicion(mesero, "DUENO", true), "supervisora"))
+		void elSupervisorNoPuedeConvertirAUnMeseroEnAdministrador() {
+			assertThatThrownBy(() -> service.actualizar(mesero.getId(), edicion(mesero, "ADMINISTRADOR", true), "supervisora"))
 					.isInstanceOf(OperacionNoAutorizadaException.class);
 		}
 
@@ -168,49 +168,49 @@ class UsuarioServiceTest {
 
 		@Test
 		void nadiePuedeDesactivarseASiMismoAlEditar() {
-			assertThatThrownBy(() -> service.actualizar(dueno.getId(), edicion(dueno, "DUENO", false), "dueno"))
+			assertThatThrownBy(() -> service.actualizar(admin.getId(), edicion(admin, "ADMINISTRADOR", false), "admin"))
 					.isInstanceOf(ReglaNegocioException.class)
 					.hasMessageContaining("a sí mismo");
 		}
 
 		@Test
-		void noPuedeQuitarseElRolDuenoAlUltimoDuenoActivo() {
-			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.DUENO, dueno.getId())).thenReturn(0L);
-			assertThatThrownBy(() -> service.actualizar(dueno.getId(), edicion(dueno, "SUPERVISOR", true), "dueno"))
+		void noPuedeQuitarseElRolAdministradorAlUltimoAdministradorActivo() {
+			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.ADMINISTRADOR, admin.getId())).thenReturn(0L);
+			assertThatThrownBy(() -> service.actualizar(admin.getId(), edicion(admin, "SUPERVISOR", true), "admin"))
 					.isInstanceOf(ReglaNegocioException.class)
-					.hasMessageContaining("al menos un usuario DUE\u00D1O activo");
+					.hasMessageContaining("al menos un usuario ADMINISTRADOR activo");
 		}
 
 		@Test
-		void siQuedaOtroDuenoActivoPuedeCambiarDeRol() {
-			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.DUENO, dueno.getId())).thenReturn(1L);
-			UsuarioResponse r = service.actualizar(dueno.getId(), edicion(dueno, "SUPERVISOR", true), "dueno");
+		void siQuedaOtroAdministradorActivoPuedeCambiarDeRol() {
+			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.ADMINISTRADOR, admin.getId())).thenReturn(1L);
+			UsuarioResponse r = service.actualizar(admin.getId(), edicion(admin, "SUPERVISOR", true), "admin");
 			assertThat(r.rol()).isEqualTo("SUPERVISOR");
 		}
 
 		@Test
 		void soloCambiaLaPasswordSiSeEnviaUnaNueva() {
-			service.actualizar(mesero.getId(), edicion(mesero, "MESERO", true), "dueno");
+			service.actualizar(mesero.getId(), edicion(mesero, "MESERO", true), "admin");
 			verify(encoder, never()).encode(anyString());
 
 			service.actualizar(mesero.getId(), new UsuarioActualizarRequest(mesero.getUsername(), "NuevaClave1!",
-					"Nombre", null, "MESERO", true), "dueno");
+					"Nombre", null, "MESERO", true), "admin");
 			verify(encoder).encode("NuevaClave1!");
 			assertThat(mesero.getPasswordHash()).isEqualTo(HASH);
 		}
 
 		@Test
 		void rechazaUsernameYaUsadoPorOtroUsuario() {
-			when(usuarios.existsByUsernameAndIdNot("dueno", mesero.getId())).thenReturn(true);
+			when(usuarios.existsByUsernameAndIdNot("admin", mesero.getId())).thenReturn(true);
 			assertThatThrownBy(() -> service.actualizar(mesero.getId(),
-					new UsuarioActualizarRequest("dueno", null, "Nombre", null, "MESERO", true), "dueno"))
+					new UsuarioActualizarRequest("admin", null, "Nombre", null, "MESERO", true), "admin"))
 					.isInstanceOf(ConflictoException.class);
 		}
 
 		@Test
 		void usuarioInexistenteDevuelveNoEncontrado() {
 			when(usuarios.findById(99)).thenReturn(Optional.empty());
-			assertThatThrownBy(() -> service.actualizar(99, edicion(mesero, "MESERO", true), "dueno"))
+			assertThatThrownBy(() -> service.actualizar(99, edicion(mesero, "MESERO", true), "admin"))
 					.isInstanceOf(RecursoNoEncontradoException.class);
 		}
 	}
@@ -220,32 +220,32 @@ class UsuarioServiceTest {
 
 		@Test
 		void nadiePuedeDesactivarseASiMismo() {
-			assertThatThrownBy(() -> service.desactivar(dueno.getId(), "dueno"))
+			assertThatThrownBy(() -> service.desactivar(admin.getId(), "admin"))
 					.isInstanceOf(ReglaNegocioException.class);
-			assertThat(dueno.isActivo()).isTrue();
+			assertThat(admin.isActivo()).isTrue();
 		}
 
 		@Test
-		void noSePuedeDesactivarAlUltimoDuenoActivo() {
-			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.DUENO, otroDueno.getId())).thenReturn(0L);
-			assertThatThrownBy(() -> service.desactivar(otroDueno.getId(), "dueno"))
+		void noSePuedeDesactivarAlUltimoAdministradorActivo() {
+			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.ADMINISTRADOR, otroAdmin.getId())).thenReturn(0L);
+			assertThatThrownBy(() -> service.desactivar(otroAdmin.getId(), "admin"))
 					.isInstanceOf(ReglaNegocioException.class);
-			assertThat(otroDueno.isActivo()).isTrue();
+			assertThat(otroAdmin.isActivo()).isTrue();
 		}
 
 		@Test
-		void unDuenoPuedeDesactivarAOtroDuenoSiQuedaAlgunoActivo() {
-			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.DUENO, otroDueno.getId())).thenReturn(1L);
-			UsuarioResponse r = service.desactivar(otroDueno.getId(), "dueno");
+		void unAdministradorPuedeDesactivarAOtroAdministradorSiQuedaAlgunoActivo() {
+			when(usuarios.contarActivosPorRolExcluyendo(RolNombre.ADMINISTRADOR, otroAdmin.getId())).thenReturn(1L);
+			UsuarioResponse r = service.desactivar(otroAdmin.getId(), "admin");
 			assertThat(r.activo()).isFalse();
-			assertThat(otroDueno.isActivo()).isFalse();
+			assertThat(otroAdmin.isActivo()).isFalse();
 		}
 
 		@Test
-		void elSupervisorNoPuedeDesactivarNiActivarAUnDueno() {
-			assertThatThrownBy(() -> service.desactivar(dueno.getId(), "supervisora"))
+		void elSupervisorNoPuedeDesactivarNiActivarAUnAdministrador() {
+			assertThatThrownBy(() -> service.desactivar(admin.getId(), "supervisora"))
 					.isInstanceOf(OperacionNoAutorizadaException.class);
-			assertThatThrownBy(() -> service.activar(dueno.getId(), "supervisora"))
+			assertThatThrownBy(() -> service.activar(admin.getId(), "supervisora"))
 					.isInstanceOf(OperacionNoAutorizadaException.class);
 		}
 
@@ -257,7 +257,7 @@ class UsuarioServiceTest {
 
 		@Test
 		void laDesactivacionEsLogicaNuncaBorra() {
-			service.desactivar(mesero.getId(), "dueno");
+			service.desactivar(mesero.getId(), "admin");
 			verify(usuarios, never()).delete(any());
 			verify(usuarios, never()).deleteById(any());
 		}

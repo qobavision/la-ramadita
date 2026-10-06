@@ -678,6 +678,10 @@ Estos roles sirven como base para definir los permisos del sistema.
 
 
 
+Nota: en el sistema, el rol del dueño se denomina ADMINISTRADOR.
+
+
+
 \---
 
 
