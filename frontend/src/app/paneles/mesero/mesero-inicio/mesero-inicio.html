@@ -1,0 +1,27 @@
+<app-encabezado-pagina
+  eyebrow="Salón"
+  titulo="¿Qué necesitas hacer?"
+  descripcion="Panel táctil para la atención de mesas. Las funciones se habilitarán con los módulos de mesas, pedidos y caja."
+>
+  <span acciones class="lr-pildora">Sin turno asignado</span>
+</app-encabezado-pagina>
+
+<section class="lr-rejilla lr-rejilla--ancha" aria-label="Accesos rápidos">
+  @for (a of accesos; track a.ruta) {
+    <a class="lr-boton-tactil" [routerLink]="a.ruta">
+      <app-icono [nombre]="a.icono" [tamano]="28" />
+      <span>
+        <strong>{{ a.etiqueta }}</strong>
+        <small>{{ a.detalle }}</small>
+      </span>
+      <span class="lr-pildora">Próximamente</span>
+    </a>
+  }
+</section>
+
+<h2 class="lr-seccion">Mis mesas</h2>
+<section class="lr-tarjeta lr-vacio">
+  <span class="lr-vacio__icono"><app-icono nombre="mesas" [tamano]="30" /></span>
+  <h2>Sin mesas asignadas</h2>
+  <p>Aquí aparecerán las mesas que estés atendiendo, con su estado y el tiempo transcurrido, cuando se implemente el módulo M06.</p>
+</section>

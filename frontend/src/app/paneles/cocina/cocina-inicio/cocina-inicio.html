@@ -1,0 +1,19 @@
+<app-encabezado-pagina
+  eyebrow="Monitor de producción"
+  titulo="Pedidos de cocina"
+  descripcion="Tablero de pedidos por estado. Se actualizará en tiempo real cuando se implemente el módulo de cocina (M08)."
+>
+  <span acciones class="lr-pildora">Sin conexión en tiempo real</span>
+</app-encabezado-pagina>
+
+<section class="lr-rejilla lr-rejilla--ancha" aria-label="Tablero de pedidos">
+  @for (c of columnas; track c.clave) {
+    <article [class]="'lr-tarjeta lr-columna lr-columna--' + c.clave">
+      <header>
+        {{ c.titulo }}
+        <small>0</small>
+      </header>
+      <div>{{ c.detalle }}<br />Próximamente.</div>
+    </article>
+  }
+</section>
