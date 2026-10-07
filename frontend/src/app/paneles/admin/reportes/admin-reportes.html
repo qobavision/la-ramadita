@@ -1,0 +1,56 @@
+<app-encabezado-pagina
+  eyebrow="Análisis"
+  titulo="Reportes / BI"
+  descripcion="Indicadores, comparaciones y consulta histórica de ventas en un solo lugar. Los reportes se generan a partir de la información registrada por el sistema."
+>
+  <span acciones class="lr-pildora">
+    <app-icono nombre="calendario" [tamano]="14" />
+    Periodo y unidad aplican a todas las pestañas
+  </span>
+</app-encabezado-pagina>
+
+<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
+
+<div class="lr-pestanas" role="tablist" aria-label="Tipos de reporte">
+  @for (p of pestanas; track p.id) {
+    <button type="button" role="tab" [attr.aria-selected]="p.id === pestana()" (click)="pestana.set(p.id)">
+      {{ p.etiqueta }}
+    </button>
+  }
+</div>
+
+@switch (actual().id) {
+  @case ('resumen') {
+    <section class="lr-rejilla mb-3" aria-label="Indicadores del periodo">
+      @for (k of indicadoresResumen; track k) {
+        <article class="lr-kpi">
+          <span>{{ k }}</span>
+          <strong aria-label="Sin datos">—</strong>
+          <small>Disponible cuando existan ventas</small>
+        </article>
+      }
+    </section>
+    <div class="lr-dashboard-fila">
+      <app-bloque-grafico titulo="Evolución del periodo" icono="tendencia" tipo="barras" />
+      <app-bloque-grafico titulo="Restaurante vs Pollería" icono="dona" tipo="dona" />
+    </div>
+  }
+  @case ('historico') {
+    <app-tabla-listado
+      [columnas]="columnasHistorico"
+      [total]="0"
+      vacioIcono="historial"
+      vacioTitulo="Sin ventas en el periodo"
+      vacioDescripcion="Aquí se consultará el histórico de ventas por día, semana, mes o rango, con detalle por unidad y turno."
+    />
+  }
+  @default {
+    <app-bloque-grafico
+      [titulo]="actual().titulo"
+      [descripcion]="actual().descripcion"
+      [icono]="actual().icono"
+      [tipo]="actual().tipo"
+      [nota]="actual().nota"
+    />
+  }
+}

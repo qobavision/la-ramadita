@@ -36,6 +36,12 @@
 
       @if (usuario(); as u) {
         <div class="panel__usuario">
+          @if (panelPropio(); as destino) {
+            <a class="panel__regresar" [routerLink]="destino" title="Volver a mi panel">
+              <app-icono nombre="volver" [tamano]="16" />
+              <span>Volver a {{ rolEtiqueta() }}</span>
+            </a>
+          }
           <span class="panel__avatar" aria-hidden="true">{{ iniciales() }}</span>
           <span class="panel__quien">
             <b>{{ nombreCompleto() }}</b>

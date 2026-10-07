@@ -26,11 +26,6 @@ export const SUPERVISION_ROUTES: Routes = rutasPanel(PANEL_SUPERVISION, ['SUPERV
     descripcion: 'Disponibilidad diaria y productos agotados.',
     modulo: 'M05',
   }),
-  rutaProximamente('usuarios', {
-    titulo: 'Usuarios',
-    descripcion: 'Gestión del personal operativo (sin cuentas de administrador).',
-    modulo: 'M01',
-  }),
   rutaProximamente('ventas', {
     titulo: 'Ventas',
     descripcion: 'Historial de ventas por unidad de negocio y turno.',

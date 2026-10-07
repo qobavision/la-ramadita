@@ -1,0 +1,81 @@
+<app-encabezado-pagina
+  eyebrow="Control"
+  titulo="Control de caja"
+  descripcion="Consulta de cajas abiertas y cerradas, responsables, movimientos y diferencias. El cobro a clientes se realiza desde el panel de Caja."
+>
+  <span acciones class="lr-pildora">
+    <app-icono nombre="escudo" [tamano]="14" />
+    Solo consulta y control
+  </span>
+</app-encabezado-pagina>
+
+<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
+
+<section class="lr-rejilla mb-4" aria-label="Resumen de caja">
+  @for (kpi of indicadores; track kpi.etiqueta) {
+    <article class="lr-kpi">
+      <span>{{ kpi.etiqueta }}</span>
+      <strong aria-label="Sin datos">—</strong>
+      <small>{{ kpi.nota }}</small>
+    </article>
+  }
+</section>
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Estado de la caja" [opciones]="filtrosCaja" [(valor)]="filtroCaja" />
+  <span class="lr-leyenda ms-auto">
+    <span class="lr-estado lr-estado--abierta">Abierta</span>
+    <span class="lr-estado">Cerrada</span>
+    <span class="lr-estado lr-estado--alerta">Con diferencia</span>
+  </span>
+</div>
+
+<app-tabla-listado
+  [columnas]="columnas"
+  [total]="0"
+  vacioIcono="caja"
+  vacioTitulo="Sin cajas en el periodo"
+  vacioDescripcion="Cuando el personal de Caja abra y cierre cajas, aparecerán aquí con su responsable, turno, montos y diferencias."
+/>
+
+<h2 class="lr-seccion">Detalle de la caja seleccionada</h2>
+
+<div class="lr-dashboard-fila lr-dashboard-fila--mitades">
+  <article class="lr-tarjeta lr-bloque">
+    <header>
+      <div>
+        <h3>Movimientos</h3>
+        <p>Ingresos, egresos y arqueo del turno</p>
+      </div>
+      <app-icono nombre="historial" [tamano]="18" />
+    </header>
+    <div class="lr-ficha">
+      @for (campo of detalle; track campo) {
+        <div>
+          <span>{{ campo }}</span>
+          <strong aria-label="Sin datos">—</strong>
+        </div>
+      }
+    </div>
+    <footer>Selecciona una caja del listado para ver su detalle.</footer>
+  </article>
+
+  <article class="lr-tarjeta lr-bloque">
+    <header>
+      <div>
+        <h3>Montos por método de pago</h3>
+        <p>Acumulado de la caja seleccionada</p>
+      </div>
+      <app-icono nombre="pago" [tamano]="18" />
+    </header>
+    <div class="lr-ficha">
+      @for (metodo of metodosPago; track metodo) {
+        <div>
+          <span>{{ metodo }}</span>
+          <strong aria-label="Sin datos">—</strong>
+        </div>
+      }
+    </div>
+    <footer>Disponible con control de caja (M10).</footer>
+  </article>
+</div>

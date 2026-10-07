@@ -1,0 +1,78 @@
+<app-encabezado-pagina
+  eyebrow="Resumen ejecutivo"
+  titulo="Dashboard"
+  descripcion="Vista rápida del negocio para tomar decisiones. Los indicadores se llenarán con las ventas, la caja y el inventario registrados en el sistema."
+>
+  <span acciones class="lr-pildora">{{ contexto() }}</span>
+</app-encabezado-pagina>
+
+<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
+
+<section class="lr-rejilla" aria-label="Indicadores principales">
+  @for (kpi of indicadores; track kpi.etiqueta) {
+    <article class="lr-kpi">
+      <span>{{ kpi.etiqueta }}</span>
+      <strong aria-label="Sin datos">—</strong>
+      <small>{{ kpi.nota }}</small>
+      <app-icono [nombre]="kpi.icono" [tamano]="18" />
+    </article>
+  }
+</section>
+
+<h2 class="lr-seccion">Ventas</h2>
+
+<div class="lr-dashboard-fila">
+  <app-bloque-grafico
+    titulo="Evolución de ventas"
+    descripcion="Ventas por día dentro del periodo elegido"
+    icono="tendencia"
+    tipo="barras"
+  />
+  <app-bloque-grafico
+    titulo="Restaurante vs Pollería"
+    descripcion="Participación de cada unidad en el resultado consolidado"
+    icono="dona"
+    tipo="dona"
+  />
+</div>
+
+<div class="lr-dashboard-fila lr-dashboard-fila--tercios">
+  <app-bloque-grafico titulo="Platos más vendidos" descripcion="Ranking por cantidad vendida" icono="productos" tipo="lista" />
+  <app-bloque-grafico titulo="Horarios de mayor venta" descripcion="Ventas por franja horaria" icono="reloj" tipo="barras" />
+  <app-bloque-grafico
+    titulo="Ventas por método de pago"
+    descripcion="Efectivo, Yape, Plin, Tarjeta y Transferencia"
+    icono="pago"
+    tipo="lista"
+    nota="Disponible cuando existan pagos registrados"
+  >
+    <footer pie>
+      <span class="lr-leyenda">
+        @for (m of metodosPago; track m) {
+          <span class="lr-pildora">{{ m }}</span>
+        }
+      </span>
+    </footer>
+  </app-bloque-grafico>
+</div>
+
+<h2 class="lr-seccion">Caja e inventario</h2>
+
+<div class="lr-dashboard-fila lr-dashboard-fila--mitades">
+  <app-bloque-grafico
+    titulo="Últimos cierres de caja"
+    descripcion="Cierres recientes y diferencias entre efectivo esperado y contado"
+    icono="caja"
+    tipo="lista"
+    aviso="Sin cierres registrados"
+    nota="Disponible con control de caja (M10)"
+  />
+  <app-bloque-grafico
+    titulo="Alertas de stock"
+    descripcion="Insumos por debajo de su stock mínimo"
+    icono="alerta"
+    tipo="lista"
+    aviso="Sin alertas"
+    nota="Disponible con inventario (M04)"
+  />
+</div>

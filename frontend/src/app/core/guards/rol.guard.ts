@@ -3,13 +3,15 @@ import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { Rol } from '../../auth/auth.models';
 import { AuthService } from '../../auth/auth.service';
-import { rutaPanelDe } from '../../auth/paneles';
+import { puedeEntrarAlPanel, rutaPanelDe } from '../../auth/paneles';
 
 /**
- * Crea un guard que exige sesión iniciada **y** uno de los roles indicados.
+ * Crea un guard que exige sesión iniciada **y** acceso al panel según el rol.
  *
  * - Sin sesión → `/login` conservando la URL solicitada.
- * - Con sesión pero rol no permitido → se redirige al panel propio del usuario
+ * - Con sesión y rol permitido (o rol de control general, ver
+ *   `puedeEntrarAlPanel`) → pasa.
+ * - Con sesión pero sin acceso → se redirige al panel propio del usuario
  *   (un MESERO que escribe `/admin` termina en `/mesero`).
  *
  * Sirve tanto para `canActivate` como para `canActivateChild`.
@@ -27,7 +29,7 @@ export function rolGuard(rolesPermitidos: readonly Rol[]): CanActivateFn & CanAc
         if (!usuario) {
           return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
         }
-        if (rolesPermitidos.includes(usuario.rol)) {
+        if (puedeEntrarAlPanel(usuario.rol, rolesPermitidos)) {
           return true;
         }
         return router.parseUrl(rutaPanelDe(usuario.rol));

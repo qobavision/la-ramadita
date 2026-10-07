@@ -1,17 +1,20 @@
 import { ConfiguracionPanel } from '../../core/layout/panel-layout/panel.config';
 
-/** Menú y textos del panel de ADMINISTRADOR. */
+/**
+ * Menú del ADMINISTRADOR. Solo contiene lo propio de la gestión general;
+ * las funciones operativas (compras, carta, mesas, cobros...) viven en los
+ * paneles de cada rol, a los que el administrador entra desde
+ * "Accesos operativos" con su misma sesión.
+ */
 export const PANEL_ADMIN: ConfiguracionPanel = {
   nombre: 'Administración',
   eyebrow: 'Panel de control',
   menu: [
-    { etiqueta: 'Inicio', icono: 'inicio', ruta: '', disponible: true },
-    { etiqueta: 'Usuarios', icono: 'usuarios', ruta: 'usuarios' },
-    { etiqueta: 'Productos y carta', icono: 'productos', ruta: 'productos' },
-    { etiqueta: 'Compras', icono: 'compras', ruta: 'compras' },
-    { etiqueta: 'Inventario', icono: 'inventario', ruta: 'inventario' },
-    { etiqueta: 'Mesas y atención', icono: 'mesas', ruta: 'mesas' },
-    { etiqueta: 'Ventas', icono: 'ventas', ruta: 'ventas' },
-    { etiqueta: 'Reportes', icono: 'reportes', ruta: 'reportes' },
+    { etiqueta: 'Dashboard', icono: 'tablero', ruta: '', disponible: true },
+    { etiqueta: 'Empleados', icono: 'empleados', ruta: 'empleados' },
+    { etiqueta: 'Usuarios y accesos', icono: 'usuarios', ruta: 'usuarios' },
+    { etiqueta: 'Reportes / BI', icono: 'reportes', ruta: 'reportes' },
+    { etiqueta: 'Control de caja', icono: 'caja', ruta: 'control-caja' },
+    { etiqueta: 'Accesos operativos', icono: 'accesos', ruta: 'accesos', disponible: true },
   ],
 };

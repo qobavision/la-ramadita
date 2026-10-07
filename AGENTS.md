@@ -352,6 +352,30 @@ El frontend puede ocultar opciones según el rol, pero el backend debe impedir c
 
 
 
+\### Decisiones del equipo sobre roles y accesos
+
+
+
+\- DUEÑO equivale oficialmente a ADMINISTRADOR en toda la documentación, el código y la base de datos.
+
+\- ADMINISTRADOR tiene control general del sistema: gestiona empleados, usuarios y accesos permanentes; consulta Dashboard, Reportes / BI, ventas históricas, control de caja e información global; y puede entrar a los paneles operativos (supervisión, mesero, cocina y caja) con su misma identidad, sin cambiar de usuario ni de rol.
+
+\- SUPERVISOR no crea usuarios ni modifica roles permanentes. Más adelante podrá realizar asignaciones operativas temporales dentro de un turno.
+
+\- EMPLEADO y USUARIO son conceptos distintos: empleado es cualquier trabajador de La Ramadita; usuario es una cuenta de acceso al sistema. No todos los empleados necesitan usuario.
+
+\- CARGO y ROL son conceptos distintos: el cargo es la función laboral (cocinero, mesero, cajero, etc.); el rol define los permisos dentro del sistema.
+
+\- En esta primera versión cada usuario tiene un único rol permanente.
+
+\- Se contemplan asignaciones temporales para MESERO, COCINA y CAJA (todavía sin implementar ni migración).
+
+
+
+Pendiente: el backend aún permite que SUPERVISOR administre usuarios (M01). Debe ajustarse para reflejar estas decisiones.
+
+
+
 \---
 
 
