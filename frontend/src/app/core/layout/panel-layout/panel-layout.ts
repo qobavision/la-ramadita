@@ -9,7 +9,8 @@ import { ConfiguracionPanel } from './panel.config';
 /**
  * Armazón común de todos los paneles por rol: barra lateral con el menú
  * (rail de iconos en tablet, barra inferior en móvil), cabecera con el
- * usuario y el cierre de sesión, y un `router-outlet` para las páginas.
+ * usuario autenticado, cierre de sesión al pie del menú y un
+ * `router-outlet` para las páginas.
  *
  * Se usa como `component` de la ruta raíz de cada panel, que debe aportar
  * `data: { panel: ConfiguracionPanel, rolesPanel: Rol[] }`.

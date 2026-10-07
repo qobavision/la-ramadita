@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * La única autoridad es el rol oficial, expresado como {@code ROLE_ADMINISTRADOR},
  * {@code ROLE_SUPERVISOR}, {@code ROLE_MESERO}, {@code ROLE_COCINA} o
- * {@code ROLE_CAJA}. Un usuario inactivo se marca como deshabilitado, lo que
- * impide tanto el login como el uso de tokens ya emitidos.
+ * {@code ROLE_CAJA}. Un usuario inactivo o archivado se marca como deshabilitado,
+ * lo que impide tanto el login como el uso de tokens ya emitidos.
  */
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
@@ -36,7 +36,7 @@ public class UsuarioDetailsService implements UserDetailsService {
 		return User.withUsername(u.getUsername())
 				.password(u.getPasswordHash())
 				.authorities(List.of(new SimpleGrantedAuthority(u.getRol().getNombre().authority())))
-				.disabled(!u.isActivo())
+				.disabled(!u.puedeIniciarSesion())
 				.build();
 	}
 }

@@ -360,19 +360,25 @@ El frontend puede ocultar opciones según el rol, pero el backend debe impedir c
 
 \- ADMINISTRADOR tiene control general del sistema: gestiona empleados, usuarios y accesos permanentes; consulta Dashboard, Reportes / BI, ventas históricas, control de caja e información global; y puede entrar a los paneles operativos (supervisión, mesero, cocina y caja) con su misma identidad, sin cambiar de usuario ni de rol.
 
-\- SUPERVISOR no crea usuarios ni modifica roles permanentes. Más adelante podrá realizar asignaciones operativas temporales dentro de un turno.
+\- SUPERVISOR no crea usuarios, no modifica cuentas ni asigna roles permanentes. Más adelante podrá realizar asignaciones operativas temporales dentro de un turno.
 
-\- EMPLEADO y USUARIO son conceptos distintos: empleado es cualquier trabajador de La Ramadita; usuario es una cuenta de acceso al sistema. No todos los empleados necesitan usuario.
+\- EMPLEADO y USUARIO son entidades distintas: empleado es cualquier trabajador de La Ramadita; usuario es una cuenta de acceso al sistema vinculada a un empleado existente. No todos los empleados tienen usuario.
 
-\- CARGO y ROL son conceptos distintos: el cargo es la función laboral (cocinero, mesero, cajero, etc.); el rol define los permisos dentro del sistema.
+\- El username es el identificador para iniciar sesión. Es distinto del correo personal del empleado.
 
-\- En esta primera versión cada usuario tiene un único rol permanente.
+\- CARGO y ROL son conceptos distintos. El cargo es la función laboral. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro. El rol define los permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
+
+\- En esta primera versión cada usuario tiene un único rol permanente. Solo ADMINISTRADOR crea usuarios, activa o inactiva cuentas y cambia el rol permanente. SUPERVISOR no gestiona usuarios ni roles permanentes.
+
+\- Activo/inactivo del empleado significa si trabaja o no trabaja actualmente. Activo/inactivo del usuario significa si puede o no puede iniciar sesión. Son estados independientes.
+
+\- Archivado es la baja lógica de Eliminar: no hay eliminación física. El registro conserva historial, sale del listado operativo y no se reactiva desde Editar. Al archivar se guarda la fecha y hora de esa baja.
+
+\- Inactivar un empleado inactiva su usuario en la misma operación. Archivar un empleado archiva también su usuario. Reactivar el empleado no reactiva la cuenta: el ADMINISTRADOR lo hace aparte. No se crea usuario para un empleado inactivo o archivado.
+
+\- Último acceso del usuario es el último inicio de sesión exitoso.
 
 \- Se contemplan asignaciones temporales para MESERO, COCINA y CAJA (todavía sin implementar ni migración).
-
-
-
-Pendiente: el backend aún permite que SUPERVISOR administre usuarios (M01). Debe ajustarse para reflejar estas decisiones.
 
 
 
@@ -525,6 +531,12 @@ Actualmente existen:
 `V1\\\_\\\_estructura\\\_inicial.sql`
 
 `V2\\\_\\\_renombrar\\\_rol\\\_dueno\\\_a\\\_administrador.sql`
+
+`V3\\\_\\\_empleados\\\_cargos\\\_y\\\_vinculo\\\_usuario.sql`
+
+`V4\\\_\\\_archivado\\\_y\\\_ultimo\\\_acceso.sql`
+
+`V5\\\_\\\_fecha\\\_archivado.sql`
 
 
 

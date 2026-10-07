@@ -1,9 +1,12 @@
 package com.laramadita.backend.usuarios.service;
 
+import com.laramadita.backend.empleados.model.Empleado;
+import com.laramadita.backend.empleados.repository.EmpleadoRepository;
 import com.laramadita.backend.shared.error.ConflictoException;
 import com.laramadita.backend.shared.error.OperacionNoAutorizadaException;
 import com.laramadita.backend.shared.error.RecursoNoEncontradoException;
 import com.laramadita.backend.shared.error.ReglaNegocioException;
+import com.laramadita.backend.usuarios.api.dto.PasswordRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioActualizarRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioResponse;
@@ -18,19 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Gestión de usuarios (M01).
+ * Gestión de cuentas de acceso (M01).
  *
- * Reglas aplicadas en backend (AGENTS.md §7: no confiar solo en el frontend):
- * <ul>
- * <li>ADMINISTRADOR administra cualquier usuario.</li>
- * <li>SUPERVISOR administra usuarios, pero no puede crear usuarios ADMINISTRADOR,
- * convertir usuarios a ADMINISTRADOR ni modificar/activar/desactivar usuarios
- * ADMINISTRADOR.</li>
- * <li>Un usuario no puede desactivarse a sí mismo.</li>
- * <li>Siempre debe quedar al menos un ADMINISTRADOR activo.</li>
- * <li>La baja es lógica; nunca se elimina físicamente (RN-33).</li>
- * </ul>
- * El acceso a estos métodos ya está restringido por rol en el controlador.
+ * Solo ADMINISTRADOR administra usuarios (AGENTS.md §7). El controlador ya
+ * restringe el acceso; aquí se refuerzan las reglas de negocio.
  */
 @Service
 @Transactional
@@ -38,11 +32,14 @@ public class UsuarioService {
 
 	private final UsuarioRepository usuarios;
 	private final RolRepository roles;
+	private final EmpleadoRepository empleados;
 	private final PasswordEncoder encoder;
 
-	public UsuarioService(UsuarioRepository usuarios, RolRepository roles, PasswordEncoder encoder) {
+	public UsuarioService(UsuarioRepository usuarios, RolRepository roles, EmpleadoRepository empleados,
+			PasswordEncoder encoder) {
 		this.usuarios = usuarios;
 		this.roles = roles;
+		this.empleados = empleados;
 		this.encoder = encoder;
 	}
 
@@ -62,21 +59,24 @@ public class UsuarioService {
 	}
 
 	public UsuarioResponse crear(UsuarioRequest r, String actorUsername) {
-		Usuario actor = buscarPorUsername(actorUsername);
-		RolNombre rolNuevo = interpretarRol(r.rol());
-		verificarPuedeAsignarRol(actor, rolNuevo);
+		exigirAdministrador(actorUsername);
 
+		Empleado empleado = empleados.findByIdConUsuario(r.empleadoId())
+				.orElseThrow(() -> new RecursoNoEncontradoException("Empleado no encontrado: " + r.empleadoId()));
+		if (!empleado.estaOperativo()) {
+			throw new ReglaNegocioException("No se puede crear un usuario para un empleado inactivo o archivado");
+		}
+		if (usuarios.existsByEmpleado_Id(empleado.getId())) {
+			throw new ConflictoException("Ese empleado ya tiene una cuenta de acceso");
+		}
+
+		RolNombre rolNuevo = interpretarRol(r.rol());
 		String username = normalizarUsername(r.username());
 		if (usuarios.existsByUsername(username)) {
 			throw new ConflictoException("El nombre de usuario ya existe");
 		}
 
-		Usuario nuevo = new Usuario(
-				username,
-				encoder.encode(r.password()),
-				r.nombre().trim(),
-				limpiar(r.apellido()),
-				rolActivo(rolNuevo));
+		Usuario nuevo = new Usuario(username, encoder.encode(r.password()), empleado, rolActivo(rolNuevo));
 		if (Boolean.FALSE.equals(r.activo())) {
 			nuevo.desactivar();
 		}
@@ -85,13 +85,10 @@ public class UsuarioService {
 	}
 
 	public UsuarioResponse actualizar(Integer id, UsuarioActualizarRequest r, String actorUsername) {
-		Usuario actor = buscarPorUsername(actorUsername);
+		Usuario actor = exigirAdministrador(actorUsername);
 		Usuario objetivo = buscar(id);
-		verificarPuedeAdministrar(actor, objetivo);
 
 		RolNombre rolNuevo = interpretarRol(r.rol());
-		verificarPuedeAsignarRol(actor, rolNuevo);
-
 		String username = normalizarUsername(r.username());
 		if (usuarios.existsByUsernameAndIdNot(username, id)) {
 			throw new ConflictoException("El nombre de usuario ya existe");
@@ -101,70 +98,116 @@ public class UsuarioService {
 		if (esElMismo && !r.activo()) {
 			throw new ReglaNegocioException("Un usuario no puede desactivarse a sí mismo");
 		}
+		if (objetivo.isArchivado() && r.activo()) {
+			throw new ReglaNegocioException("Un usuario archivado no puede reactivarse desde Editar");
+		}
+		if (r.activo() && !objetivo.getEmpleado().estaOperativo()) {
+			throw new ReglaNegocioException("No se puede activar un usuario cuyo empleado está inactivo o archivado");
+		}
 
 		boolean dejaDeSerAdministradorActivo = objetivo.esAdministrador() && objetivo.isActivo()
+				&& !objetivo.isArchivado()
 				&& (rolNuevo != RolNombre.ADMINISTRADOR || !r.activo());
 		if (dejaDeSerAdministradorActivo) {
 			asegurarOtroAdministradorActivo(objetivo);
 		}
 
-		objetivo.actualizarDatos(username, r.nombre().trim(), limpiar(r.apellido()), rolActivo(rolNuevo));
+		objetivo.actualizarCuenta(username, rolActivo(rolNuevo));
+		objetivo.sincronizarNombreDesdeEmpleado();
 		if (r.password() != null && !r.password().isBlank()) {
 			objetivo.cambiarPassword(encoder.encode(r.password()));
 		}
-		if (r.activo()) {
-			objetivo.activar();
-		} else {
-			objetivo.desactivar();
+		if (!objetivo.isArchivado()) {
+			if (r.activo()) {
+				objetivo.activar();
+			} else {
+				objetivo.desactivar();
+			}
 		}
 		usuarios.save(objetivo);
 		return UsuarioResponse.de(objetivo);
 	}
 
-	public UsuarioResponse desactivar(Integer id, String actorUsername) {
-		Usuario actor = buscarPorUsername(actorUsername);
+	public UsuarioResponse restablecerPassword(Integer id, PasswordRequest r, String actorUsername) {
+		exigirAdministrador(actorUsername);
 		Usuario objetivo = buscar(id);
-		verificarPuedeAdministrar(actor, objetivo);
+		objetivo.cambiarPassword(encoder.encode(r.password()));
+		usuarios.save(objetivo);
+		return UsuarioResponse.de(objetivo);
+	}
 
+	public UsuarioResponse desactivar(Integer id, String actorUsername) {
+		Usuario actor = exigirAdministrador(actorUsername);
+		Usuario objetivo = buscar(id);
 		if (objetivo.getId().equals(actor.getId())) {
 			throw new ReglaNegocioException("Un usuario no puede desactivarse a sí mismo");
+		}
+		inactivarPorBajaDeEmpleado(objetivo);
+		usuarios.save(objetivo);
+		return UsuarioResponse.de(objetivo);
+	}
+
+	public UsuarioResponse activar(Integer id, String actorUsername) {
+		exigirAdministrador(actorUsername);
+		Usuario objetivo = buscar(id);
+		if (objetivo.isArchivado()) {
+			throw new ReglaNegocioException("Un usuario archivado no puede reactivarse desde esta operación");
+		}
+		if (!objetivo.getEmpleado().estaOperativo()) {
+			throw new ReglaNegocioException("No se puede activar un usuario cuyo empleado está inactivo o archivado");
+		}
+		objetivo.activar();
+		usuarios.save(objetivo);
+		return UsuarioResponse.de(objetivo);
+	}
+
+	public UsuarioResponse archivar(Integer id, String actorUsername) {
+		Usuario actor = exigirAdministrador(actorUsername);
+		Usuario objetivo = buscar(id);
+		if (objetivo.getId().equals(actor.getId())) {
+			throw new ReglaNegocioException("Un usuario no puede archivar su propia cuenta");
+		}
+		archivarPorBajaDeEmpleado(objetivo);
+		return UsuarioResponse.de(objetivo);
+	}
+
+	/**
+	 * Inactiva la cuenta porque se inactivó el empleado. Conserva la protección
+	 * del último ADMINISTRADOR activo. No archiva.
+	 */
+	public void inactivarPorBajaDeEmpleado(Usuario objetivo) {
+		if (objetivo.isArchivado()) {
+			return;
 		}
 		if (objetivo.esAdministrador() && objetivo.isActivo()) {
 			asegurarOtroAdministradorActivo(objetivo);
 		}
 		objetivo.desactivar();
 		usuarios.save(objetivo);
-		return UsuarioResponse.de(objetivo);
 	}
 
-	public UsuarioResponse activar(Integer id, String actorUsername) {
-		Usuario actor = buscarPorUsername(actorUsername);
-		Usuario objetivo = buscar(id);
-		verificarPuedeAdministrar(actor, objetivo);
-
-		objetivo.activar();
+	/**
+	 * Archiva la cuenta (baja lógica de Eliminar). Conserva la protección del
+	 * último ADMINISTRADOR activo.
+	 */
+	public void archivarPorBajaDeEmpleado(Usuario objetivo) {
+		if (objetivo.isArchivado()) {
+			return;
+		}
+		if (objetivo.esAdministrador() && objetivo.isActivo()) {
+			asegurarOtroAdministradorActivo(objetivo);
+		}
+		objetivo.archivar();
 		usuarios.save(objetivo);
-		return UsuarioResponse.de(objetivo);
 	}
 
-	// ------------------------------------------------------------------
-	// Reglas
-	// ------------------------------------------------------------------
-
-	/** SUPERVISOR no puede tocar usuarios ADMINISTRADOR. ADMINISTRADOR puede con cualquiera. */
-	private void verificarPuedeAdministrar(Usuario actor, Usuario objetivo) {
-		if (!actor.esAdministrador() && objetivo.esAdministrador()) {
+	private Usuario exigirAdministrador(String actorUsername) {
+		Usuario actor = buscarPorUsername(actorUsername);
+		if (!actor.esAdministrador()) {
 			throw new OperacionNoAutorizadaException(
-					"Solo un usuario ADMINISTRADOR puede modificar a otro usuario ADMINISTRADOR");
+					"Solo un usuario ADMINISTRADOR puede administrar cuentas de acceso");
 		}
-	}
-
-	/** Solo ADMINISTRADOR puede crear o asignar el rol ADMINISTRADOR. */
-	private void verificarPuedeAsignarRol(Usuario actor, RolNombre rol) {
-		if (rol == RolNombre.ADMINISTRADOR && !actor.esAdministrador()) {
-			throw new OperacionNoAutorizadaException(
-					"Solo un usuario ADMINISTRADOR puede asignar el rol ADMINISTRADOR");
-		}
+		return actor;
 	}
 
 	private void asegurarOtroAdministradorActivo(Usuario objetivo) {
@@ -174,10 +217,6 @@ public class UsuarioService {
 					"Debe permanecer al menos un usuario ADMINISTRADOR activo en el sistema");
 		}
 	}
-
-	// ------------------------------------------------------------------
-	// Apoyo
-	// ------------------------------------------------------------------
 
 	private Usuario buscar(Integer id) {
 		return usuarios.findById(id)
@@ -203,9 +242,5 @@ public class UsuarioService {
 
 	private static String normalizarUsername(String username) {
 		return Usuario.normalizarUsername(username);
-	}
-
-	private static String limpiar(String valor) {
-		return valor == null || valor.isBlank() ? null : valor.trim();
 	}
 }

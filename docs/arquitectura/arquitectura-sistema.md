@@ -50,6 +50,8 @@ Ejemplos:
 
 \- usuarios;
 
+\- empleados y cargos;
+
 \- unidades de negocio;
 
 \- turnos;
@@ -432,7 +434,11 @@ El sistema también debe permitir consultar información consolidada.
 
 
 
-Cada trabajador debe utilizar un usuario individual.
+Empleado y usuario son entidades distintas. El empleado representa al trabajador (cargo laboral, contacto, si trabaja actualmente). El usuario es la cuenta de acceso, vinculada a un empleado, con un rol permanente. No todos los empleados tienen usuario. El username no es el correo personal.
+
+
+
+Cada trabajador que acceda al sistema debe utilizar un usuario individual.
 
 
 
@@ -469,6 +475,22 @@ ADMINISTRADOR puede acceder a los paneles de los demás roles con su misma sesi�
 
 
 Las contraseñas deberán almacenarse mediante hash seguro.
+
+
+
+Tablas de M01 a partir de V3:
+
+
+
+\- `dbo.cargos`: catálogo de puestos laborales (no son roles). Semilla: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+
+\- `dbo.empleados`: trabajadores. DNI único de 8 dígitos cuando existe; puede ser NULL solo en registros heredados de usuarios que no tenían DNI. `archivado` (V4) marca la baja lógica. `fecha_archivado` (V5) es cuándo se pulsó Eliminar.
+
+\- `dbo.usuarios.empleado_id`: obligatorio, único y con FK a empleados. Un empleado tiene como máximo una cuenta. `archivado` y `fecha_ultimo_acceso` se agregan en V4. `fecha_archivado` se agrega en V5.
+
+
+
+Inactivar un empleado inactiva su usuario en la misma operación. Archivar un empleado archiva también su usuario. Reactivar el empleado no reactiva la cuenta. Último acceso se actualiza solo tras un login exitoso.
 
 
 
@@ -605,6 +627,7 @@ frontend
 ├── auth
 
 ├── usuarios
+├── empleados
 
 ├── productos
 
@@ -647,6 +670,7 @@ backend
 ├── seguridad
 
 ├── usuarios
+├── empleados
 
 ├── unidadesnegocio
 

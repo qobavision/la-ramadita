@@ -794,11 +794,15 @@ Empleado es cualquier trabajador de La Ramadita, tenga o no acceso al sistema.
 
 
 
-Usuario es la cuenta de acceso al sistema asociada a un empleado.
+Usuario es la cuenta de acceso al sistema vinculada a un empleado existente.
 
 
 
-No todos los empleados necesitan usuario.
+No todos los empleados tienen usuario. Un empleado tiene como máximo una cuenta; esa unicidad se garantiza en base de datos.
+
+
+
+El username es el identificador para iniciar sesión y es distinto del correo personal del empleado.
 
 
 
@@ -810,7 +814,7 @@ No todos los empleados necesitan usuario.
 
 
 
-El cargo es la función laboral del empleado (cocinero, mesero, cajero, etc.).
+El cargo es la función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
 
 
 
@@ -846,7 +850,7 @@ En esta primera versión cada usuario tiene un único rol permanente.
 
 
 
-Solo ADMINISTRADOR crea usuarios y modifica roles permanentes.
+Solo ADMINISTRADOR crea usuarios, activa o inactiva cuentas y modifica roles permanentes.
 
 
 
@@ -875,6 +879,46 @@ El SUPERVISOR podrá realizarlas cuando se implementen.
 
 
 Esta regla todavía no está implementada.
+
+
+
+\---
+
+
+
+\## RN-41 - Estado de empleado y de usuario
+
+
+
+Empleado activo significa que trabaja actualmente. Empleado inactivo significa que no trabaja actualmente.
+
+
+
+Usuario activo significa que puede iniciar sesión. Usuario inactivo significa que no puede iniciar sesión.
+
+
+
+Son estados independientes, con estas reglas:
+
+
+
+\- No se puede crear un usuario para un empleado inactivo o archivado.
+
+\- Al inactivar un empleado, su usuario queda inactivo en la misma operación.
+
+\- Al reactivar un empleado, su usuario permanece inactivo hasta que el ADMINISTRADOR lo reactive.
+
+\- Un usuario puede estar inactivo mientras el empleado continúa activo.
+
+\- Un usuario inactivo no puede iniciar sesión y puede reactivarse desde Editar.
+
+\- Archivado (acción Eliminar) es una baja lógica: no hay eliminación física. El registro conserva ID, relaciones e historial, queda fuera de la operación normal y no aparece en Todos ni en Activos. Se consulta al final del filtro Inactivos. Al archivar se registra la fecha y hora de la baja.
+
+\- Al archivar un empleado, su usuario también queda archivado y no puede iniciar sesión.
+
+\- Un registro archivado no se reactiva desde Editar.
+
+\- Último acceso es la fecha y hora del último inicio de sesión exitoso del usuario. No se actualiza en intentos fallidos ni al consultar la sesión.
 
 
 

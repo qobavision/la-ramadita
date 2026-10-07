@@ -1,5 +1,6 @@
 package com.laramadita.backend.usuarios.api;
 
+import com.laramadita.backend.usuarios.api.dto.PasswordRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioActualizarRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioRequest;
 import com.laramadita.backend.usuarios.api.dto.UsuarioResponse;
@@ -19,13 +20,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Administración de usuarios. Solo ADMINISTRADOR y SUPERVISOR acceden; las
- * reglas finas (qué puede hacer un SUPERVISOR) se validan en {@link UsuarioService}.
- */
+/** Administración de cuentas de acceso. Solo ADMINISTRADOR. */
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@PreAuthorize("hasAnyRole('ADMINISTRADOR', 'SUPERVISOR')")
+@PreAuthorize("hasRole('ADMINISTRADOR')")
 public class UsuarioController {
 
 	private final UsuarioService service;
@@ -56,9 +54,20 @@ public class UsuarioController {
 		return service.actualizar(id, request, auth.getName());
 	}
 
+	@PatchMapping("/{id}/password")
+	public UsuarioResponse restablecerPassword(@PathVariable Integer id, @Valid @RequestBody PasswordRequest request,
+			Authentication auth) {
+		return service.restablecerPassword(id, request, auth.getName());
+	}
+
 	@PatchMapping("/{id}/desactivar")
 	public UsuarioResponse desactivar(@PathVariable Integer id, Authentication auth) {
 		return service.desactivar(id, auth.getName());
+	}
+
+	@PatchMapping("/{id}/archivar")
+	public UsuarioResponse archivar(@PathVariable Integer id, Authentication auth) {
+		return service.archivar(id, auth.getName());
 	}
 
 	@PatchMapping("/{id}/activar")

@@ -103,11 +103,50 @@
   }
 }
 
-.panel__estado {
+.panel__pie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: auto;
-  padding: 10px 6px 0;
+  padding-top: 16px;
+  border-top: 1px solid #ffffff14;
+}
+
+.panel__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 13px 4px;
   font-size: 12px;
   color: #8dd4ae;
+}
+
+.panel__estado-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.panel__salir {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #aeb5ac;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+
+  &:hover {
+    color: #fff;
+    background: #ffffff0a;
+  }
 }
 
 // ---------- Cuerpo ----------
@@ -171,33 +210,24 @@
   }
 }
 
-.panel__salir,
 .panel__regresar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 6px;
+  margin-right: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--lr-linea);
+  border: 1px solid #f0c9b4;
   border-radius: 10px;
-  background: #fff;
+  background: #fff5ee;
   font-size: 13px;
   font-weight: 600;
-  color: inherit;
+  color: var(--lr-naranja);
   text-decoration: none;
   white-space: nowrap;
 
   &:hover {
     border-color: var(--lr-naranja);
-    color: var(--lr-naranja);
   }
-}
-
-.panel__regresar {
-  margin-right: 8px;
-  border-color: #f0c9b4;
-  background: #fff5ee;
-  color: var(--lr-naranja);
 }
 
 .panel__contenido {
@@ -223,9 +253,22 @@
 
   .panel__marca-texto,
   .panel__item span,
-  .panel__estado,
+  .panel__estado-texto,
+  .panel__salir span,
   .panel__quien small {
     display: none;
+  }
+
+  .panel__pie {
+    padding-top: 12px;
+    align-items: center;
+  }
+
+  .panel__estado,
+  .panel__salir {
+    justify-content: center;
+    padding-inline: 0;
+    width: 100%;
   }
 
   .panel__item {
@@ -287,13 +330,29 @@
     }
   }
 
+  .panel__pie {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0;
+    padding: 0 4px 0 0;
+    border-top: 0;
+    gap: 0;
+  }
+
+  .panel__estado {
+    padding: 0 8px;
+  }
+
+  .panel__salir {
+    width: auto;
+    padding: 8px;
+  }
+
   .panel__quien,
-  .panel__salir span,
   .panel__regresar span {
     display: none;
   }
 
-  .panel__salir,
   .panel__regresar {
     padding: 8px;
   }

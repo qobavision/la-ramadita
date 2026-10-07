@@ -3,16 +3,16 @@
   titulo="Empleados"
   descripcion="Trabajadores de La Ramadita, tengan o no acceso al sistema. El cargo describe su función laboral; los permisos se gestionan en Usuarios y accesos."
 >
-  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="registrar()">
+  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirCrear()">
     <app-icono nombre="mas" [tamano]="16" />
     Registrar empleado
   </button>
 </app-encabezado-pagina>
 
-@if (avisoRegistro()) {
+@if (aviso(); as texto) {
   <p class="lr-nota mb-3" role="status">
-    <app-icono nombre="construccion" [tamano]="16" />
-    <span>El registro de empleados estará disponible cuando se implemente el módulo de personal. Esta pantalla solo define la estructura.</span>
+    <app-icono nombre="empleados" [tamano]="16" />
+    <span>{{ texto }}</span>
   </p>
 }
 
@@ -24,18 +24,156 @@
 
   <select class="form-select" aria-label="Filtrar por cargo" [value]="cargo()" (change)="actualizarCargo($event)">
     <option value="">Todos los cargos</option>
-    @for (c of cargos; track c) {
-      <option [value]="c">{{ c }}</option>
+    @for (c of cargos(); track c.id) {
+      <option [value]="c.nombre">{{ c.nombre }}</option>
     }
   </select>
 
   <app-segmento etiqueta="Estado" [opciones]="estados" [(valor)]="estado" />
 </div>
 
-<app-tabla-listado
-  [columnas]="columnas"
-  [total]="0"
-  vacioIcono="empleados"
-  vacioTitulo="Todavía no hay empleados registrados"
-  vacioDescripcion="Cuando se registren trabajadores aparecerán aquí con su cargo, contacto y estado."
-/>
+@if (filtrados().length === 0) {
+  <app-tabla-listado
+    [columnas]="columnas"
+    [total]="0"
+    vacioIcono="empleados"
+    [vacioTitulo]="vacioPorFiltro() ? 'Ningún empleado coincide con la búsqueda' : 'Todavía no hay empleados registrados'"
+    [vacioDescripcion]="
+      vacioPorFiltro()
+        ? 'Prueba con otro nombre, DNI, cargo o estado.'
+        : 'Cuando registres trabajadores aparecerán aquí con su cargo, contacto y si tienen o no cuenta de acceso.'
+    "
+  />
+} @else {
+  <div class="lr-tabla-marco--escritorio">
+  <app-tabla-listado [columnas]="columnas" [total]="filtrados().length">
+    @for (empleado of filtrados(); track empleado.id) {
+      <tr filas>
+        <td>
+          <strong>{{ nombreDe(empleado) }}</strong>
+        </td>
+        <td>{{ empleado.dni || '—' }}</td>
+        <td>{{ empleado.cargo.nombre }}</td>
+        <td>{{ empleado.telefono || '—' }}</td>
+        <td>{{ empleado.correoPersonal || '—' }}</td>
+        <td>
+          <span class="lr-estado" [class.lr-estado--activo]="!!empleado.usuario">
+            {{ empleado.usuario ? 'Sí' : 'No' }}
+          </span>
+        </td>
+        <td>
+          <span class="lr-estado {{ claseEstado(empleado) }}">{{ etiquetaEstado(empleado) }}</span>
+        </td>
+        <td class="num lr-tabla__acciones">
+          <div class="lr-acciones">
+            @if (empleado.archivado) {
+              <button type="button" class="lr-accion" title="Ver detalles" (click)="abrirVer(empleado)">
+                <app-icono nombre="ver" [tamano]="16" />
+              </button>
+            } @else {
+              <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Eliminar" (click)="abrirEliminar(empleado)">
+                <app-icono nombre="eliminar" [tamano]="16" />
+              </button>
+            }
+          </div>
+        </td>
+      </tr>
+    }
+  </app-tabla-listado>
+  </div>
+
+  <div class="lr-tarjetas-listado">
+    @for (empleado of filtrados(); track empleado.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ nombreDe(empleado) }}</strong>
+            <small>{{ empleado.cargo.nombre }} · DNI {{ empleado.dni || '—' }}</small>
+          </div>
+          <span class="lr-estado {{ claseEstado(empleado) }}">{{ etiquetaEstado(empleado) }}</span>
+        </header>
+        <dl>
+          <dt>Teléfono</dt>
+          <dd>{{ empleado.telefono || '—' }}</dd>
+          <dt>Correo</dt>
+          <dd>{{ empleado.correoPersonal || '—' }}</dd>
+          <dt>Tiene usuario</dt>
+          <dd>{{ empleado.usuario ? 'Sí' : 'No' }}</dd>
+        </dl>
+        <div class="lr-acciones">
+          @if (empleado.archivado) {
+            <button type="button" class="lr-accion" title="Ver detalles" (click)="abrirVer(empleado)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
+          } @else {
+            <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Eliminar" (click)="abrirEliminar(empleado)">
+              <app-icono nombre="eliminar" [tamano]="16" />
+            </button>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (dialogo() === 'crear' || dialogo() === 'editar') {
+  <app-dialogo
+    ancho="ancho"
+    [eyebrow]="dialogo() === 'crear' ? 'Personal' : 'Editar'"
+    [titulo]="dialogo() === 'crear' ? 'Registrar empleado' : 'Editar empleado'"
+    descripcion="El cargo es la función laboral. Tener empleado no implica tener usuario."
+    (cerrar)="cerrarDialogo()"
+  >
+    <app-empleado-formulario
+      [empleado]="seleccionado()"
+      [cargos]="cargos()"
+      [error]="errorFormulario()"
+      [etiquetaGuardar]="dialogo() === 'crear' ? 'Registrar empleado' : 'Guardar cambios'"
+      (guardar)="guardar($event)"
+      (cancelar)="cerrarDialogo()"
+    />
+  </app-dialogo>
+}
+
+@if (dialogo() === 'ver' && seleccionado(); as empleado) {
+  <app-dialogo
+    eyebrow="Personal"
+    titulo="Detalle del empleado"
+    descripcion="Consulta de un registro archivado. No se puede editar ni reactivar desde aquí."
+    (cerrar)="cerrarDialogo()"
+  >
+    <dl class="lr-ficha">
+      <dt>Eliminado el</dt>
+      <dd>{{ fechaDe(empleado.fechaArchivado) }}</dd>
+      <dt>Registrado el</dt>
+      <dd>{{ fechaDe(empleado.fechaCreacion) }}</dd>
+    </dl>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDialogo()">Cerrar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar' && seleccionado(); as empleado) {
+  <app-dialogo
+    eyebrow="Personal"
+    titulo="Eliminar empleado"
+    descripcion="Este empleado dejará de aparecer en el listado operativo, pero su información e historial se conservarán."
+    (cerrar)="cerrarDialogo()"
+  >
+    @if (errorFormulario(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">{{ nombreDe(empleado) }} quedará archivado. Si tiene usuario, esa cuenta tampoco podrá iniciar sesión.</p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDialogo()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminar()">Eliminar</button>
+    </div>
+  </app-dialogo>
+}
