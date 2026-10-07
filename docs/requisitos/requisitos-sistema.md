@@ -164,6 +164,72 @@ Las contraseñas no deben almacenarse en texto plano.
 
 
 
+\## Decisiones del equipo (roles y accesos)
+
+
+
+El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR.
+
+
+
+\*\*Empleado y usuario\*\*
+
+
+
+\- Empleado: cualquier trabajador de La Ramadita, tenga o no acceso al sistema. Se registran sus datos básicos (nombre, DNI, cargo, contacto, estado).
+
+\- Usuario: cuenta de acceso al sistema asociada a un empleado.
+
+\- No todos los empleados necesitan usuario.
+
+
+
+\*\*Cargo y rol\*\*
+
+
+
+\- Cargo: función laboral del empleado (cocinero, ayudante de cocina, mesero, cajero, supervisor, seguridad, almacenero u otro).
+
+\- Rol: permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
+
+
+
+\*\*Rol permanente\*\*
+
+
+
+\- En esta primera versión cada usuario tiene un único rol permanente.
+
+\- Solo ADMINISTRADOR crea usuarios y modifica roles permanentes.
+
+\- SUPERVISOR no crea usuarios ni modifica roles permanentes.
+
+
+
+\*\*Asignaciones temporales (previstas, no implementadas)\*\*
+
+
+
+\- Se contemplan asignaciones operativas temporales dentro de un turno para MESERO, COCINA y CAJA.
+
+\- El SUPERVISOR podrá realizarlas cuando se implementen.
+
+
+
+\*\*Alcance del ADMINISTRADOR\*\*
+
+
+
+\- Control general del sistema.
+
+\- Gestión de empleados, usuarios y accesos permanentes.
+
+\- Consulta de Dashboard, Reportes / BI (incluye ventas e históricos), control de caja e información global.
+
+\- Acceso a los paneles operativos (supervisión, mesero, cocina y caja) con su misma identidad, sin cambiar de usuario ni de rol.
+
+
+
 \---
 
 

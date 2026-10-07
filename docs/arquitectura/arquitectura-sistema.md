@@ -460,6 +460,14 @@ Ocultar una opción en Angular no reemplaza la validación de permisos en backen
 
 
 
+Cada usuario tiene un único rol permanente en esta primera versión. Solo ADMINISTRADOR crea usuarios y modifica roles permanentes.
+
+
+
+ADMINISTRADOR puede acceder a los paneles de los demás roles con su misma sesión; los otros roles solo acceden a su propio panel. Esta regla se aplica en los guards del frontend y debe respetarse también en los permisos del backend.
+
+
+
 Las contraseñas deberán almacenarse mediante hash seguro.
 
 

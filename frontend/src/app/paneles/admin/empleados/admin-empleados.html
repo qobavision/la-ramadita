@@ -1,0 +1,41 @@
+<app-encabezado-pagina
+  eyebrow="Personal"
+  titulo="Empleados"
+  descripcion="Trabajadores de La Ramadita, tengan o no acceso al sistema. El cargo describe su función laboral; los permisos se gestionan en Usuarios y accesos."
+>
+  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="registrar()">
+    <app-icono nombre="mas" [tamano]="16" />
+    Registrar empleado
+  </button>
+</app-encabezado-pagina>
+
+@if (avisoRegistro()) {
+  <p class="lr-nota mb-3" role="status">
+    <app-icono nombre="construccion" [tamano]="16" />
+    <span>El registro de empleados estará disponible cuando se implemente el módulo de personal. Esta pantalla solo define la estructura.</span>
+  </p>
+}
+
+<div class="lr-herramientas" role="search">
+  <label class="lr-buscador">
+    <app-icono nombre="buscar" [tamano]="16" />
+    <input type="search" placeholder="Buscar por nombre o DNI" [value]="busqueda()" (input)="actualizarBusqueda($event)" />
+  </label>
+
+  <select class="form-select" aria-label="Filtrar por cargo" [value]="cargo()" (change)="actualizarCargo($event)">
+    <option value="">Todos los cargos</option>
+    @for (c of cargos; track c) {
+      <option [value]="c">{{ c }}</option>
+    }
+  </select>
+
+  <app-segmento etiqueta="Estado" [opciones]="estados" [(valor)]="estado" />
+</div>
+
+<app-tabla-listado
+  [columnas]="columnas"
+  [total]="0"
+  vacioIcono="empleados"
+  vacioTitulo="Todavía no hay empleados registrados"
+  vacioDescripcion="Cuando se registren trabajadores aparecerán aquí con su cargo, contacto y estado."
+/>

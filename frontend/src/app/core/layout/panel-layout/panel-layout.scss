@@ -171,7 +171,8 @@
   }
 }
 
-.panel__salir {
+.panel__salir,
+.panel__regresar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -182,11 +183,21 @@
   background: #fff;
   font-size: 13px;
   font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
 
   &:hover {
     border-color: var(--lr-naranja);
     color: var(--lr-naranja);
   }
+}
+
+.panel__regresar {
+  margin-right: 8px;
+  border-color: #f0c9b4;
+  background: #fff5ee;
+  color: var(--lr-naranja);
 }
 
 .panel__contenido {
@@ -277,11 +288,13 @@
   }
 
   .panel__quien,
-  .panel__salir span {
+  .panel__salir span,
+  .panel__regresar span {
     display: none;
   }
 
-  .panel__salir {
+  .panel__salir,
+  .panel__regresar {
     padding: 8px;
   }
 

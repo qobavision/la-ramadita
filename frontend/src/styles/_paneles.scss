@@ -13,7 +13,7 @@
 // Rejilla fluida de tarjetas (PC: 3-4 columnas, tablet: 2, móvil: 1)
 .lr-rejilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
   gap: 14px;
 }
 

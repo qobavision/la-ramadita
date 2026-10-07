@@ -1,0 +1,27 @@
+<app-encabezado-pagina
+  eyebrow="Operación"
+  titulo="Accesos operativos"
+  descripcion="Entra a los paneles de trabajo de cada rol para revisar o intervenir. Sigues autenticado como administrador; no cambias de usuario ni de rol."
+>
+  <span acciones class="lr-pildora">
+    <app-icono nombre="escudo" [tamano]="14" />
+    Misma sesión de administrador
+  </span>
+</app-encabezado-pagina>
+
+<section class="lr-rejilla lr-rejilla--ancha" aria-label="Paneles operativos">
+  @for (a of accesos; track a.rol) {
+    <app-tarjeta-modulo
+      [titulo]="a.titulo"
+      [descripcion]="a.descripcion + ' Panel del rol ' + etiquetaDe(a.rol) + '.'"
+      [icono]="a.icono"
+      [ruta]="rutaDe(a.rol)"
+      [disponible]="true"
+    />
+  }
+</section>
+
+<p class="lr-nota mt-4">
+  <app-icono nombre="volver" [tamano]="16" />
+  <span>Dentro de cualquier panel operativo verás en la cabecera el botón <b>«Volver a Administrador»</b> para regresar aquí.</span>
+</p>

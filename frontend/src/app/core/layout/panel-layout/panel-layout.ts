@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ROL_ETIQUETA } from '../../../auth/auth.models';
+import { Rol, ROL_ETIQUETA } from '../../../auth/auth.models';
 import { AuthService } from '../../../auth/auth.service';
+import { rutaPanelDe } from '../../../auth/paneles';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { ConfiguracionPanel } from './panel.config';
 
@@ -11,7 +12,11 @@ import { ConfiguracionPanel } from './panel.config';
  * usuario y el cierre de sesión, y un `router-outlet` para las páginas.
  *
  * Se usa como `component` de la ruta raíz de cada panel, que debe aportar
- * `data: { panel: ConfiguracionPanel }`.
+ * `data: { panel: ConfiguracionPanel, rolesPanel: Rol[] }`.
+ *
+ * Si el usuario no pertenece a los roles del panel (caso del ADMINISTRADOR
+ * revisando un panel operativo), la cabecera muestra un enlace para volver
+ * a su propio panel.
  */
 @Component({
   selector: 'app-panel-layout',
@@ -22,14 +27,23 @@ import { ConfiguracionPanel } from './panel.config';
 })
 export class PanelLayout {
   private readonly auth = inject(AuthService);
+  private readonly ruta = inject(ActivatedRoute);
 
-  protected readonly config: ConfiguracionPanel = inject(ActivatedRoute).snapshot.data['panel'] ?? {
+  protected readonly config: ConfiguracionPanel = this.ruta.snapshot.data['panel'] ?? {
     nombre: 'Panel',
     eyebrow: '',
     menu: [],
   };
 
+  private readonly rolesPanel: readonly Rol[] = this.ruta.snapshot.data['rolesPanel'] ?? [];
+
   protected readonly usuario = this.auth.usuario;
+
+  /** Ruta del panel propio del usuario cuando está visitando un panel de otro rol. */
+  protected readonly panelPropio = computed(() => {
+    const u = this.usuario();
+    return u && !this.rolesPanel.includes(u.rol) ? rutaPanelDe(u.rol) : null;
+  });
 
   protected readonly nombreCompleto = computed(() => {
     const u = this.usuario();

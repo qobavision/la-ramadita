@@ -786,6 +786,102 @@ Cuando corresponda se deben desactivar.
 
 
 
+\## RN-36 - Empleado y usuario
+
+
+
+Empleado es cualquier trabajador de La Ramadita, tenga o no acceso al sistema.
+
+
+
+Usuario es la cuenta de acceso al sistema asociada a un empleado.
+
+
+
+No todos los empleados necesitan usuario.
+
+
+
+\---
+
+
+
+\## RN-37 - Cargo y rol
+
+
+
+El cargo es la función laboral del empleado (cocinero, mesero, cajero, etc.).
+
+
+
+El rol define los permisos dentro del sistema.
+
+
+
+Los roles del sistema son: ADMINISTRADOR, SUPERVISOR, MESERO, COCINA y CAJA.
+
+
+
+El rol DUEÑO de los documentos originales equivale a ADMINISTRADOR.
+
+
+
+\---
+
+
+
+\## RN-38 - Rol permanente único
+
+
+
+En esta primera versión cada usuario tiene un único rol permanente.
+
+
+
+\---
+
+
+
+\## RN-39 - Administración de usuarios y roles
+
+
+
+Solo ADMINISTRADOR crea usuarios y modifica roles permanentes.
+
+
+
+SUPERVISOR no crea usuarios ni modifica roles permanentes.
+
+
+
+ADMINISTRADOR tiene control general del sistema y puede acceder a los paneles operativos con su misma identidad, sin cambiar de usuario ni de rol.
+
+
+
+\---
+
+
+
+\## RN-40 - Asignaciones temporales (previsto)
+
+
+
+Se contemplan asignaciones operativas temporales dentro de un turno para los roles MESERO, COCINA y CAJA.
+
+
+
+El SUPERVISOR podrá realizarlas cuando se implementen.
+
+
+
+Esta regla todavía no está implementada.
+
+
+
+\---
+
+
+
 \# 13. Trazabilidad
 
 
