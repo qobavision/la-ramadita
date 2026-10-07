@@ -243,6 +243,11 @@
     color: #a1988c;
   }
 
+  &--archivado {
+    background: #ece8e4;
+    color: #7a736b;
+  }
+
   &--abierta {
     background: #fff0e4;
     color: var(--lr-naranja);
@@ -551,6 +556,24 @@
 
 .lr-dialogo__cuerpo {
   padding: 18px 22px 22px;
+}
+
+.lr-ficha {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  font-size: 14px;
+
+  dt {
+    color: var(--lr-gris);
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 700;
+  }
 }
 
 .lr-formulario {

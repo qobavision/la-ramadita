@@ -798,7 +798,7 @@ Usuario es la cuenta de acceso al sistema vinculada a un empleado existente.
 
 
 
-No todos los empleados tienen usuario.
+No todos los empleados tienen usuario. Un empleado tiene como máximo una cuenta; esa unicidad se garantiza en base de datos.
 
 
 
@@ -898,7 +898,27 @@ Usuario activo significa que puede iniciar sesión. Usuario inactivo significa q
 
 
 
-Son estados independientes.
+Son estados independientes, con estas reglas:
+
+
+
+\- No se puede crear un usuario para un empleado inactivo o archivado.
+
+\- Al inactivar un empleado, su usuario queda inactivo en la misma operación.
+
+\- Al reactivar un empleado, su usuario permanece inactivo hasta que el ADMINISTRADOR lo reactive.
+
+\- Un usuario puede estar inactivo mientras el empleado continúa activo.
+
+\- Un usuario inactivo no puede iniciar sesión y puede reactivarse desde Editar.
+
+\- Archivado (acción Eliminar) es una baja lógica: no hay eliminación física. El registro conserva ID, relaciones e historial, queda fuera de la operación normal y no aparece en Todos ni en Activos. Se consulta al final del filtro Inactivos. Al archivar se registra la fecha y hora de la baja.
+
+\- Al archivar un empleado, su usuario también queda archivado y no puede iniciar sesión.
+
+\- Un registro archivado no se reactiva desde Editar.
+
+\- Último acceso es la fecha y hora del último inicio de sesión exitoso del usuario. No se actualiza en intentos fallidos ni al consultar la sesión.
 
 
 

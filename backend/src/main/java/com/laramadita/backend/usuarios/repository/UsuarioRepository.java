@@ -18,10 +18,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
 	List<Usuario> findAllByOrderByUsernameAsc();
 
+	boolean existsByEmpleado_Id(Integer empleadoId);
+
+	Optional<Usuario> findByEmpleado_Id(Integer empleadoId);
+
 	/** Cuenta los usuarios activos con el rol indicado, excluyendo un usuario concreto. */
 	@Query("""
 			select count(u) from Usuario u
-			where u.rol.nombre = :rol and u.activo = true and u.id <> :excluirId
+			where u.rol.nombre = :rol and u.activo = true and u.archivado = false and u.id <> :excluirId
 			""")
 	long contarActivosPorRolExcluyendo(@Param("rol") RolNombre rol, @Param("excluirId") Integer excluirId);
 }

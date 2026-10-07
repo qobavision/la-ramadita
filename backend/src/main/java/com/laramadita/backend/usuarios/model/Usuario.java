@@ -1,5 +1,6 @@
 package com.laramadita.backend.usuarios.model;
 
+import com.laramadita.backend.empleados.model.Empleado;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -16,10 +18,12 @@ import java.util.Locale;
 import org.hibernate.annotations.Nationalized;
 
 /**
- * Usuario del sistema. Tabla {@code dbo.usuarios} de V1.
+ * Cuenta de acceso. Tabla {@code dbo.usuarios} (V1 + empleado_id en V3).
  *
- * La contraseña solo se guarda como hash BCrypt. La baja es lógica mediante
- * {@code activo} (RN-33: no eliminar físicamente usuarios con historial).
+ * Pertenece a un empleado (1 → 0..1). {@code nombre} y {@code apellido} se
+ * conservan como copia sincronizada; la fuente funcional es el empleado.
+ * La contraseña solo se guarda como hash BCrypt. {@code activo} es la
+ * desactivación temporal; {@code archivado} es la baja lógica (Eliminar).
  */
 @Entity
 @Table(name = "usuarios")
@@ -29,6 +33,10 @@ public class Usuario {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "usuario_id")
 	private Integer id;
+
+	@OneToOne(fetch = FetchType.EAGER, optional = false)
+	@JoinColumn(name = "empleado_id", nullable = false, unique = true)
+	private Empleado empleado;
 
 	@ManyToOne(fetch = FetchType.EAGER, optional = false)
 	@JoinColumn(name = "rol_id", nullable = false)
@@ -53,34 +61,48 @@ public class Usuario {
 	@Column(name = "activo", nullable = false)
 	private boolean activo = true;
 
+	@Column(name = "archivado", nullable = false)
+	private boolean archivado = false;
+
+	@Column(name = "fecha_archivado")
+	private LocalDateTime fechaArchivado;
+
+	@Column(name = "fecha_ultimo_acceso")
+	private LocalDateTime fechaUltimoAcceso;
+
 	@Column(name = "fecha_creacion", nullable = false, updatable = false)
 	private LocalDateTime fechaCreacion;
 
 	protected Usuario() {
 	}
 
-	public Usuario(String username, String passwordHash, String nombre, String apellido, Rol rol) {
+	public Usuario(String username, String passwordHash, Empleado empleado, Rol rol) {
 		this.username = username;
 		this.passwordHash = passwordHash;
-		this.nombre = nombre;
-		this.apellido = apellido;
+		this.empleado = empleado;
 		this.rol = rol;
 		this.activo = true;
+		sincronizarNombreDesdeEmpleado();
 	}
 
 	@PrePersist
 	void alCrear() {
 		if (fechaCreacion == null) {
-			// Coherente con el DEFAULT SYSUTCDATETIME() definido en V1.
 			fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
 		}
 	}
 
-	public void actualizarDatos(String username, String nombre, String apellido, Rol rol) {
+	public void actualizarCuenta(String username, Rol rol) {
 		this.username = username;
-		this.nombre = nombre;
-		this.apellido = apellido;
 		this.rol = rol;
+	}
+
+	public void sincronizarNombreDesdeEmpleado() {
+		if (empleado != null) {
+			this.nombre = empleado.getNombres();
+			String apellidos = empleado.getApellidos();
+			this.apellido = apellidos == null || apellidos.isBlank() ? null : apellidos;
+		}
 	}
 
 	public void cambiarPassword(String nuevoHash) {
@@ -95,6 +117,22 @@ public class Usuario {
 		this.activo = false;
 	}
 
+	public void archivar() {
+		this.activo = false;
+		this.archivado = true;
+		if (this.fechaArchivado == null) {
+			this.fechaArchivado = LocalDateTime.now(ZoneOffset.UTC);
+		}
+	}
+
+	public void registrarUltimoAcceso(LocalDateTime momento) {
+		this.fechaUltimoAcceso = momento;
+	}
+
+	public boolean puedeIniciarSesion() {
+		return activo && !archivado && (empleado == null || !empleado.isArchivado());
+	}
+
 	public boolean esAdministrador() {
 		return rol != null && rol.getNombre() == RolNombre.ADMINISTRADOR;
 	}
@@ -106,6 +144,10 @@ public class Usuario {
 
 	public Integer getId() {
 		return id;
+	}
+
+	public Empleado getEmpleado() {
+		return empleado;
 	}
 
 	public Rol getRol() {
@@ -130,6 +172,18 @@ public class Usuario {
 
 	public boolean isActivo() {
 		return activo;
+	}
+
+	public boolean isArchivado() {
+		return archivado;
+	}
+
+	public LocalDateTime getFechaArchivado() {
+		return fechaArchivado;
+	}
+
+	public LocalDateTime getFechaUltimoAcceso() {
+		return fechaUltimoAcceso;
 	}
 
 	public LocalDateTime getFechaCreacion() {

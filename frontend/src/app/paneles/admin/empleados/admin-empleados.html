@@ -24,8 +24,8 @@
 
   <select class="form-select" aria-label="Filtrar por cargo" [value]="cargo()" (change)="actualizarCargo($event)">
     <option value="">Todos los cargos</option>
-    @for (c of cargos; track c) {
-      <option [value]="c">{{ c }}</option>
+    @for (c of cargos(); track c.id) {
+      <option [value]="c.nombre">{{ c.nombre }}</option>
     }
   </select>
 
@@ -52,42 +52,32 @@
         <td>
           <strong>{{ nombreDe(empleado) }}</strong>
         </td>
-        <td>{{ empleado.dni }}</td>
-        <td>{{ empleado.cargo }}</td>
+        <td>{{ empleado.dni || '—' }}</td>
+        <td>{{ empleado.cargo.nombre }}</td>
         <td>{{ empleado.telefono || '—' }}</td>
         <td>{{ empleado.correoPersonal || '—' }}</td>
-        <td class="lr-tabla__acceso">
-          <div class="lr-acceso">
-            @if (empleado.acceso) {
-              <span class="lr-estado lr-estado--activo">Sí</span>
-              <button type="button" class="lr-enlace" (click)="verAcceso(empleado)">Ver acceso</button>
-            } @else {
-              <span class="lr-estado">No</span>
-              <button type="button" class="lr-enlace" (click)="crearAcceso(empleado)">Crear acceso</button>
-            }
-          </div>
+        <td>
+          <span class="lr-estado" [class.lr-estado--activo]="!!empleado.usuario">
+            {{ empleado.usuario ? 'Sí' : 'No' }}
+          </span>
         </td>
         <td>
-          <span class="lr-estado" [class.lr-estado--activo]="empleado.activo" [class.lr-estado--inactivo]="!empleado.activo">
-            {{ empleado.activo ? 'Activo' : 'Inactivo' }}
-          </span>
+          <span class="lr-estado {{ claseEstado(empleado) }}">{{ etiquetaEstado(empleado) }}</span>
         </td>
         <td class="num lr-tabla__acciones">
           <div class="lr-acciones">
-            <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(empleado)">
-              <app-icono nombre="ver" [tamano]="16" />
-            </button>
-            <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
-              <app-icono nombre="editar" [tamano]="16" />
-            </button>
-            <button
-              type="button"
-              class="lr-accion"
-              [title]="empleado.activo ? 'Inactivar' : 'Activar'"
-              (click)="cambiarEstado(empleado)"
-            >
-              <app-icono nombre="poder" [tamano]="16" />
-            </button>
+            @if (empleado.archivado) {
+              <button type="button" class="lr-accion" title="Ver detalles" (click)="abrirVer(empleado)">
+                <app-icono nombre="ver" [tamano]="16" />
+              </button>
+            } @else {
+              <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Eliminar" (click)="abrirEliminar(empleado)">
+                <app-icono nombre="eliminar" [tamano]="16" />
+              </button>
+            }
           </div>
         </td>
       </tr>
@@ -101,34 +91,30 @@
         <header>
           <div>
             <strong>{{ nombreDe(empleado) }}</strong>
-            <small>{{ empleado.cargo }} · DNI {{ empleado.dni }}</small>
+            <small>{{ empleado.cargo.nombre }} · DNI {{ empleado.dni || '—' }}</small>
           </div>
-          <span class="lr-estado" [class.lr-estado--activo]="empleado.activo" [class.lr-estado--inactivo]="!empleado.activo">
-            {{ empleado.activo ? 'Activo' : 'Inactivo' }}
-          </span>
+          <span class="lr-estado {{ claseEstado(empleado) }}">{{ etiquetaEstado(empleado) }}</span>
         </header>
         <dl>
           <dt>Teléfono</dt>
           <dd>{{ empleado.telefono || '—' }}</dd>
           <dt>Correo</dt>
           <dd>{{ empleado.correoPersonal || '—' }}</dd>
-          <dt>Acceso al sistema</dt>
-          <dd>{{ empleado.acceso ? 'Sí' : 'No' }}</dd>
+          <dt>Tiene usuario</dt>
+          <dd>{{ empleado.usuario ? 'Sí' : 'No' }}</dd>
         </dl>
         <div class="lr-acciones">
-          <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(empleado)">
-            <app-icono nombre="ver" [tamano]="16" />
-          </button>
-          <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
-            <app-icono nombre="editar" [tamano]="16" />
-          </button>
-          <button type="button" class="lr-accion" [title]="empleado.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(empleado)">
-            <app-icono nombre="poder" [tamano]="16" />
-          </button>
-          @if (empleado.acceso) {
-            <button type="button" class="lr-enlace" (click)="verAcceso(empleado)">Ver acceso</button>
+          @if (empleado.archivado) {
+            <button type="button" class="lr-accion" title="Ver detalles" (click)="abrirVer(empleado)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
           } @else {
-            <button type="button" class="lr-enlace" (click)="crearAcceso(empleado)">Crear acceso</button>
+            <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(empleado)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Eliminar" (click)="abrirEliminar(empleado)">
+              <app-icono nombre="eliminar" [tamano]="16" />
+            </button>
           }
         </div>
       </article>
@@ -146,6 +132,7 @@
   >
     <app-empleado-formulario
       [empleado]="seleccionado()"
+      [cargos]="cargos()"
       [error]="errorFormulario()"
       [etiquetaGuardar]="dialogo() === 'crear' ? 'Registrar empleado' : 'Guardar cambios'"
       (guardar)="guardar($event)"
@@ -156,52 +143,37 @@
 
 @if (dialogo() === 'ver' && seleccionado(); as empleado) {
   <app-dialogo
-    ancho="ancho"
-    eyebrow="Ficha"
-    titulo="Empleado"
-    descripcion="Datos laborales y de contacto. El acceso al sistema se gestiona aparte."
+    eyebrow="Personal"
+    titulo="Detalle del empleado"
+    descripcion="Consulta de un registro archivado. No se puede editar ni reactivar desde aquí."
     (cerrar)="cerrarDialogo()"
   >
-    <div class="lr-ficha lr-ficha--llena">
-      <div>
-        <span>Nombre completo</span>
-        <strong>{{ nombreDe(empleado) }}</strong>
-      </div>
-      <div>
-        <span>DNI</span>
-        <strong>{{ empleado.dni }}</strong>
-      </div>
-      <div>
-        <span>Cargo</span>
-        <strong>{{ empleado.cargo }}</strong>
-      </div>
-      <div>
-        <span>Teléfono</span>
-        <strong>{{ empleado.telefono || '—' }}</strong>
-      </div>
-      <div>
-        <span>Correo personal</span>
-        <strong>{{ empleado.correoPersonal || '—' }}</strong>
-      </div>
-      <div>
-        <span>Estado</span>
-        <strong>{{ empleado.activo ? 'Activo · trabaja actualmente' : 'Inactivo · no trabaja actualmente' }}</strong>
-      </div>
-      <div>
-        <span>Acceso al sistema</span>
-        <strong>{{ empleado.acceso ? 'Sí' : 'No' }}</strong>
-      </div>
-    </div>
+    <dl class="lr-ficha">
+      <dt>Eliminado el</dt>
+      <dd>{{ fechaDe(empleado.fechaArchivado) }}</dd>
+      <dt>Registrado el</dt>
+      <dd>{{ fechaDe(empleado.fechaCreacion) }}</dd>
+    </dl>
     <div class="lr-formulario__pie">
-      @if (empleado.acceso) {
-        <button type="button" class="btn btn-outline-secondary" (click)="verAcceso(empleado)">Ver acceso</button>
-      } @else {
-        <button type="button" class="btn btn-outline-secondary" (click)="crearAcceso(empleado)">Crear acceso</button>
-      }
-      <button type="button" class="btn btn-outline-secondary" (click)="cambiarEstado(empleado)">
-        {{ empleado.activo ? 'Inactivar' : 'Activar' }}
-      </button>
-      <button type="button" class="btn btn-primary" (click)="abrirEditar(empleado)">Editar</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDialogo()">Cerrar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar' && seleccionado(); as empleado) {
+  <app-dialogo
+    eyebrow="Personal"
+    titulo="Eliminar empleado"
+    descripcion="Este empleado dejará de aparecer en el listado operativo, pero su información e historial se conservarán."
+    (cerrar)="cerrarDialogo()"
+  >
+    @if (errorFormulario(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">{{ nombreDe(empleado) }} quedará archivado. Si tiene usuario, esa cuenta tampoco podrá iniciar sesión.</p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDialogo()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminar()">Eliminar</button>
     </div>
   </app-dialogo>
 }

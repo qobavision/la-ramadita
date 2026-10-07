@@ -7,6 +7,8 @@ import com.laramadita.backend.usuarios.model.Usuario;
 import com.laramadita.backend.usuarios.repository.UsuarioRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,13 +32,15 @@ public class AuthService {
 	 * está inactivo, Spring Security lanza una {@code AuthenticationException}
 	 * que la API traduce a 401 sin revelar cuál fue el motivo.
 	 */
-	@Transactional(readOnly = true)
+	@Transactional
 	public LoginResponse login(LoginRequest request) {
 		String username = Usuario.normalizarUsername(request.username());
 		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, request.password()));
 
 		Usuario usuario = usuarios.findByUsername(username)
 				.orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
+		usuario.registrarUltimoAcceso(LocalDateTime.now(ZoneOffset.UTC));
+		usuarios.save(usuario);
 		JwtService.Token token = jwt.emitir(usuario);
 		return new LoginResponse(token.valor(), "Bearer", token.expiraEn(), UsuarioResponse.de(usuario));
 	}

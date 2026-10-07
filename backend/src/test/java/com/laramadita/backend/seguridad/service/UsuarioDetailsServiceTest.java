@@ -40,6 +40,15 @@ class UsuarioDetailsServiceTest {
 	}
 
 	@Test
+	void unUsuarioArchivadoNoPuedeIniciarSesion() {
+		var cuenta = usuario(6, "archivo", RolNombre.CAJA, true);
+		cuenta.archivar();
+		when(usuarios.findByUsername("archivo")).thenReturn(Optional.of(cuenta));
+
+		assertThat(service.loadUserByUsername("archivo").isEnabled()).isFalse();
+	}
+
+	@Test
 	void unUsuarioInexistenteLanzaUsernameNotFound() {
 		when(usuarios.findByUsername("nadie")).thenReturn(Optional.empty());
 

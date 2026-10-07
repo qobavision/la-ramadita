@@ -24,7 +24,16 @@
       }
     </nav>
 
-    <small class="panel__estado">● Red local</small>
+    <div class="panel__pie">
+      <small class="panel__estado" title="Red local">
+        <span class="panel__estado-punto" aria-hidden="true"></span>
+        <span class="panel__estado-texto">Red local</span>
+      </small>
+      <button type="button" class="panel__salir" (click)="cerrarSesion()" title="Cerrar sesión">
+        <app-icono nombre="salir" [tamano]="18" />
+        <span>Cerrar sesión</span>
+      </button>
+    </div>
   </aside>
 
   <div class="panel__cuerpo">
@@ -47,10 +56,6 @@
             <b>{{ nombreCompleto() }}</b>
             <small>{{ rolEtiqueta() }} · {{ u.username }}</small>
           </span>
-          <button type="button" class="panel__salir" (click)="cerrarSesion()" title="Cerrar sesión">
-            <app-icono nombre="salir" [tamano]="18" />
-            <span>Cerrar sesión</span>
-          </button>
         </div>
       }
     </header>

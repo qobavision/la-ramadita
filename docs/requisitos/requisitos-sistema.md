@@ -154,9 +154,11 @@ El sistema debe:
 
 \- impedir en backend acciones no autorizadas;
 
-\- permitir crear, editar, activar y desactivar usuarios a los roles autorizados;
+\- permitir crear, editar, activar y desactivar empleados y usuarios solo al ADMINISTRADOR;
 
-\- evitar eliminar físicamente usuarios que posean historial.
+\- impedir que SUPERVISOR administre cuentas o asigne roles permanentes;
+
+\- evitar eliminar físicamente empleados o usuarios que posean historial.
 
 
 
@@ -218,7 +220,17 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 \- Usuario activo: puede iniciar sesión. Usuario inactivo: no puede iniciar sesión.
 
-\- El estado del empleado y el del usuario son independientes.
+\- El estado del empleado y el del usuario son independientes, con estas reglas: no se crea un usuario para un empleado inactivo o archivado; inactivar un empleado inactiva su usuario en la misma operación; reactivar un empleado no reactiva su usuario.
+
+\- Activo, Inactivo y Archivado son distintos. Inactivo es temporal y sigue en el listado operativo. Archivado es la baja lógica de Eliminar: no hay DELETE físico; el registro se conserva para historial, deja de participar en la operación normal y guarda la fecha de esa baja.
+
+\- Un usuario inactivo puede reactivarse. Un registro archivado no vuelve a Activo desde Editar.
+
+\- Último acceso es el último inicio de sesión exitoso del usuario.
+
+\- Relación: un empleado tiene como máximo una cuenta. Un usuario siempre pertenece a un empleado.
+
+\- DNI obligatorio (8 dígitos, único) para empleados nuevos. Los empleados creados al migrar usuarios existentes pueden no tener DNI.
 
 
 

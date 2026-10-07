@@ -1,35 +1,50 @@
 package com.laramadita.backend.usuarios.api.dto;
 
+import com.laramadita.backend.empleados.api.dto.EmpleadoResumenResponse;
+import com.laramadita.backend.empleados.model.Empleado;
 import com.laramadita.backend.usuarios.model.Usuario;
 import java.time.LocalDateTime;
 
 /**
  * Representación pública de un usuario. Nunca incluye el hash de contraseña.
  *
- * {@code rol} es la constante interna (p. ej. ADMINISTRADOR) y {@code rolNombre}
- * el valor tal como está en base de datos. Hoy coinciden; se mantienen ambos
- * para que el frontend use siempre {@code rol} en lógica y {@code rolNombre}
- * solo para mostrar.
+ * {@code nombre} y {@code apellido} salen del empleado vinculado (fuente
+ * funcional). Se conservan en la respuesta para no romper login y {@code /me}.
  */
 public record UsuarioResponse(
 		Integer id,
+		Integer empleadoId,
 		String username,
 		String nombre,
 		String apellido,
 		String rol,
 		String rolNombre,
 		boolean activo,
-		LocalDateTime fechaCreacion) {
+		boolean archivado,
+		LocalDateTime fechaCreacion,
+		LocalDateTime fechaArchivado,
+		LocalDateTime fechaUltimoAcceso,
+		EmpleadoResumenResponse empleado) {
 
 	public static UsuarioResponse de(Usuario u) {
+		Empleado empleado = u.getEmpleado();
 		return new UsuarioResponse(
 				u.getId(),
+				empleado == null ? null : empleado.getId(),
 				u.getUsername(),
-				u.getNombre(),
-				u.getApellido(),
+				empleado != null ? empleado.getNombres() : u.getNombre(),
+				empleado != null ? vacioANulo(empleado.getApellidos()) : u.getApellido(),
 				u.getRol().getNombre().name(),
 				u.getRol().getNombre().valorBaseDatos(),
 				u.isActivo(),
-				u.getFechaCreacion());
+				u.isArchivado(),
+				u.getFechaCreacion(),
+				u.getFechaArchivado(),
+				u.getFechaUltimoAcceso(),
+				empleado == null ? null : EmpleadoResumenResponse.de(empleado));
+	}
+
+	private static String vacioANulo(String valor) {
+		return valor == null || valor.isBlank() ? null : valor;
 	}
 }

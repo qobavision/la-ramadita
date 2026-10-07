@@ -2,10 +2,13 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, output, sign
 import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Rol, ROL_ETIQUETA } from '../../../auth/auth.models';
 import { Icono } from '../../../shared/ui/icono/icono';
-import { nombreCompletoDe, EmpleadoVisual } from '../personal/personal.models';
-import { AltaAcceso } from '../personal/personal.store';
+import { Empleado, nombreCompletoDe } from '../../../personal/personal.models';
 
-export interface AltaAccesoFormulario extends AltaAcceso {
+export interface AltaAccesoFormulario {
+  empleadoId: number;
+  username: string;
+  rol: Rol;
+  activo: boolean;
   password: string;
 }
 
@@ -35,7 +38,7 @@ function clavesCoinciden(grupo: AbstractControl): ValidationErrors | null {
         >
           <option [ngValue]="0">Selecciona un empleado</option>
           @for (empleado of empleados(); track empleado.id) {
-            <option [ngValue]="empleado.id">{{ nombreDe(empleado) }} · {{ empleado.cargo }}</option>
+            <option [ngValue]="empleado.id">{{ nombreDe(empleado) }} · {{ empleado.cargo.nombre }}</option>
           }
         </select>
         <div class="invalid-feedback">Selecciona el empleado al que pertenece esta cuenta.</div>
@@ -112,6 +115,9 @@ function clavesCoinciden(grupo: AbstractControl): ValidationErrors | null {
           <option [ngValue]="true">Activo (puede iniciar sesión)</option>
           <option [ngValue]="false">Inactivo (no puede iniciar sesión)</option>
         </select>
+        @if (archivado()) {
+          <div class="form-text">Este usuario está archivado y no puede reactivarse desde Editar.</div>
+        }
       </div>
       }
 
@@ -131,11 +137,12 @@ function clavesCoinciden(grupo: AbstractControl): ValidationErrors | null {
 export class UsuarioFormulario {
   private readonly fb = inject(NonNullableFormBuilder);
 
-  readonly empleados = input<readonly EmpleadoVisual[]>([]);
+  readonly empleados = input<readonly Empleado[]>([]);
   readonly empleadoId = input<number | null>(null);
   readonly username = input('');
   readonly rol = input<Rol | ''>('');
   readonly activo = input(true);
+  readonly archivado = input(false);
   readonly pedirClave = input(true);
   readonly soloClave = input(false);
   readonly error = input<string | null>(null);
@@ -188,6 +195,11 @@ export class UsuarioFormulario {
         this.formulario.controls.empleadoId.disable();
       } else {
         this.formulario.controls.empleadoId.enable();
+      }
+      if (this.archivado()) {
+        this.formulario.controls.activo.disable({ emitEvent: false });
+      } else {
+        this.formulario.controls.activo.enable({ emitEvent: false });
       }
     });
   }

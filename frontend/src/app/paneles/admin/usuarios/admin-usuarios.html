@@ -1,7 +1,7 @@
 <app-encabezado-pagina
   eyebrow="Seguridad"
   titulo="Usuarios y accesos"
-  descripcion="Cuentas para iniciar sesión. Cada usuario pertenece a un empleado y tiene un único rol permanente. Solo el administrador crea cuentas, cambia el rol o activa e inactiva el acceso."
+  descripcion="Cuentas para iniciar sesión. Cada usuario pertenece a un empleado y tiene un único rol permanente."
 >
   <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirCrear()">
     <app-icono nombre="mas" [tamano]="16" />
@@ -55,26 +55,23 @@
         <td>{{ acceso.username }}</td>
         <td>{{ etiquetaRol(acceso.rol) }}</td>
         <td>
-          <span class="lr-estado" [class.lr-estado--activo]="acceso.activo" [class.lr-estado--inactivo]="!acceso.activo">
-            {{ acceso.activo ? 'Activo' : 'Inactivo' }}
-          </span>
+          <span class="lr-estado {{ claseEstado(acceso) }}">{{ etiquetaEstado(acceso) }}</span>
         </td>
-        <td>—</td>
+        <td>{{ ultimoAccesoDe(acceso.fechaUltimoAcceso) }}</td>
         <td class="num lr-tabla__acciones">
-          <div class="lr-acciones">
-            <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(acceso)">
-              <app-icono nombre="ver" [tamano]="16" />
-            </button>
-            <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(acceso)">
-              <app-icono nombre="editar" [tamano]="16" />
-            </button>
-            <button type="button" class="lr-accion" [title]="acceso.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(acceso)">
-              <app-icono nombre="poder" [tamano]="16" />
-            </button>
-            <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
-              <app-icono nombre="clave" [tamano]="16" />
-            </button>
-          </div>
+          @if (!acceso.archivado) {
+            <div class="lr-acciones">
+              <button type="button" class="lr-accion" title="Editar usuario" (click)="abrirEditar(acceso)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Eliminar usuario" (click)="abrirEliminar(acceso)">
+                <app-icono nombre="eliminar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
+                <app-icono nombre="clave" [tamano]="16" />
+              </button>
+            </div>
+          }
         </td>
       </tr>
     }
@@ -89,28 +86,25 @@
             <strong>{{ acceso.empleado ? nombreDe(acceso.empleado) : 'Empleado no encontrado' }}</strong>
             <small>{{ acceso.username }} · {{ etiquetaRol(acceso.rol) }}</small>
           </div>
-          <span class="lr-estado" [class.lr-estado--activo]="acceso.activo" [class.lr-estado--inactivo]="!acceso.activo">
-            {{ acceso.activo ? 'Activo' : 'Inactivo' }}
-          </span>
+          <span class="lr-estado {{ claseEstado(acceso) }}">{{ etiquetaEstado(acceso) }}</span>
         </header>
         <dl>
           <dt>Último acceso</dt>
-          <dd>—</dd>
+          <dd>{{ ultimoAccesoDe(acceso.fechaUltimoAcceso) }}</dd>
         </dl>
-        <div class="lr-acciones">
-          <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(acceso)">
-            <app-icono nombre="ver" [tamano]="16" />
-          </button>
-          <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(acceso)">
-            <app-icono nombre="editar" [tamano]="16" />
-          </button>
-          <button type="button" class="lr-accion" [title]="acceso.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(acceso)">
-            <app-icono nombre="poder" [tamano]="16" />
-          </button>
-          <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
-            <app-icono nombre="clave" [tamano]="16" />
-          </button>
-        </div>
+        @if (!acceso.archivado) {
+          <div class="lr-acciones">
+            <button type="button" class="lr-accion" title="Editar usuario" (click)="abrirEditar(acceso)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Eliminar usuario" (click)="abrirEliminar(acceso)">
+              <app-icono nombre="eliminar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
+              <app-icono nombre="clave" [tamano]="16" />
+            </button>
+          </div>
+        }
       </article>
     }
   </div>
@@ -120,6 +114,7 @@
   <span>Usuario activo = puede iniciar sesión.</span>
   <span class="lr-estado lr-estado--activo">Activo</span>
   <span class="lr-estado lr-estado--inactivo">Inactivo</span>
+  <span class="lr-estado lr-estado--archivado">Archivado</span>
 </div>
 
 @if (dialogo() === 'crear' || dialogo() === 'editar') {
@@ -136,6 +131,7 @@
       [username]="seleccionado()?.username ?? ''"
       [rol]="seleccionado()?.rol ?? ''"
       [activo]="seleccionado()?.activo ?? true"
+      [archivado]="seleccionado()?.archivado ?? false"
       [pedirClave]="dialogo() === 'crear'"
       [error]="errorFormulario()"
       [etiquetaGuardar]="dialogo() === 'crear' ? 'Crear usuario' : 'Guardar cambios'"
@@ -149,7 +145,7 @@
   <app-dialogo
     eyebrow="Seguridad"
     titulo="Restablecer contraseña"
-    [descripcion]="'Cuenta ' + acceso.username + '. Esta acción todavía no se envía al servidor.'"
+    [descripcion]="'Cuenta ' + acceso.username + '. La nueva contraseña se guarda con BCrypt y no se muestra.'"
     (cerrar)="cerrarDialogo()"
   >
     <app-usuario-formulario
@@ -161,7 +157,7 @@
       [pedirClave]="true"
       [soloClave]="true"
       [error]="errorFormulario()"
-      etiquetaGuardar="Preparar restablecimiento"
+      etiquetaGuardar="Restablecer contraseña"
       etiquetaClave="Nueva contraseña temporal"
       (guardar)="guardar($event)"
       (cancelar)="cerrarDialogo()"
@@ -169,48 +165,20 @@
   </app-dialogo>
 }
 
-@if (dialogo() === 'ver' && seleccionado(); as acceso) {
+@if (dialogo() === 'eliminar' && seleccionado(); as acceso) {
   <app-dialogo
-    ancho="ancho"
-    eyebrow="Ficha"
-    titulo="Usuario"
-    descripcion="Cuenta de acceso vinculada a un empleado. Un usuario, un rol permanente."
+    eyebrow="Seguridad"
+    titulo="Eliminar usuario"
+    descripcion="La cuenta dejará de aparecer en el listado operativo, pero su información e historial se conservarán."
     (cerrar)="cerrarDialogo()"
   >
-    <div class="lr-ficha lr-ficha--llena">
-      <div>
-        <span>Empleado</span>
-        <strong>{{ acceso.empleado ? nombreDe(acceso.empleado) : '—' }}</strong>
-      </div>
-      <div>
-        <span>Username</span>
-        <strong>{{ acceso.username }}</strong>
-      </div>
-      <div>
-        <span>Rol permanente</span>
-        <strong>{{ etiquetaRol(acceso.rol) }}</strong>
-      </div>
-      <div>
-        <span>Estado</span>
-        <strong>{{ acceso.activo ? 'Activo · puede iniciar sesión' : 'Inactivo · no puede iniciar sesión' }}</strong>
-      </div>
-      <div>
-        <span>Último acceso</span>
-        <strong>—</strong>
-      </div>
-      @if (acceso.empleado) {
-        <div>
-          <span>Correo personal del empleado</span>
-          <strong>{{ acceso.empleado.correoPersonal || '—' }}</strong>
-        </div>
-      }
-    </div>
+    @if (errorFormulario(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">{{ acceso.username }} quedará archivado y no podrá iniciar sesión.</p>
     <div class="lr-formulario__pie">
-      <button type="button" class="btn btn-outline-secondary" (click)="abrirClave(acceso)">Restablecer contraseña</button>
-      <button type="button" class="btn btn-outline-secondary" (click)="cambiarEstado(acceso)">
-        {{ acceso.activo ? 'Inactivar' : 'Activar' }}
-      </button>
-      <button type="button" class="btn btn-primary" (click)="abrirEditar(acceso)">Editar</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDialogo()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminar()">Eliminar</button>
     </div>
   </app-dialogo>
 }

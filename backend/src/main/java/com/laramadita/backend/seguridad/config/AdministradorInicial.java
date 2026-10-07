@@ -1,5 +1,9 @@
 package com.laramadita.backend.seguridad.config;
 
+import com.laramadita.backend.empleados.model.Cargo;
+import com.laramadita.backend.empleados.model.Empleado;
+import com.laramadita.backend.empleados.repository.CargoRepository;
+import com.laramadita.backend.empleados.repository.EmpleadoRepository;
 import com.laramadita.backend.usuarios.model.Rol;
 import com.laramadita.backend.usuarios.model.RolNombre;
 import com.laramadita.backend.usuarios.model.Usuario;
@@ -17,28 +21,33 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Crea el primer usuario ADMINISTRADOR cuando la tabla {@code usuarios} está vacía.
  *
- * Las credenciales provienen exclusivamente de las variables de entorno
- * APP_ADMIN_USERNAME y APP_ADMIN_PASSWORD. No existen valores por defecto:
- * si faltan, solo se registra una advertencia. Una vez que hay usuarios, las
- * variables se ignoran, por lo que pueden retirarse del entorno.
+ * También crea el empleado asociado (cargo Otro, sin DNI) porque desde V3
+ * todo usuario pertenece a un empleado. Las credenciales salen solo de
+ * APP_ADMIN_USERNAME y APP_ADMIN_PASSWORD.
  */
 @Component
 public class AdministradorInicial implements ApplicationRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(AdministradorInicial.class);
 	private static final int LONGITUD_MINIMA_PASSWORD = 8;
+	private static final String CARGO_OTRO = "Otro";
 
 	private final UsuarioRepository usuarios;
 	private final RolRepository roles;
+	private final CargoRepository cargos;
+	private final EmpleadoRepository empleados;
 	private final PasswordEncoder encoder;
 	private final String username;
 	private final String password;
 
-	public AdministradorInicial(UsuarioRepository usuarios, RolRepository roles, PasswordEncoder encoder,
+	public AdministradorInicial(UsuarioRepository usuarios, RolRepository roles, CargoRepository cargos,
+			EmpleadoRepository empleados, PasswordEncoder encoder,
 			@Value("${app.security.administrador-inicial.username}") String username,
 			@Value("${app.security.administrador-inicial.password}") String password) {
 		this.usuarios = usuarios;
 		this.roles = roles;
+		this.cargos = cargos;
+		this.empleados = empleados;
 		this.encoder = encoder;
 		this.username = username == null ? "" : username.trim();
 		this.password = password == null ? "" : password;
@@ -68,8 +77,14 @@ public class AdministradorInicial implements ApplicationRunner {
 		Rol rol = roles.findByNombre(RolNombre.ADMINISTRADOR)
 				.orElseThrow(() -> new IllegalStateException(
 						"No existe el rol ADMINISTRADOR en la tabla roles. Verifique las migraciones V1 y V2."));
-		Usuario administrador = new Usuario(Usuario.normalizarUsername(username), encoder.encode(password),
-				"Administrador", null, rol);
+		Cargo cargo = cargos.findByNombre(CARGO_OTRO)
+				.orElseThrow(() -> new IllegalStateException(
+						"No existe el cargo Otro. Verifique la migración V3."));
+
+		Empleado empleado = new Empleado("Administrador", "", null, null, null, cargo);
+		empleados.save(empleado);
+
+		Usuario administrador = new Usuario(Usuario.normalizarUsername(username), encoder.encode(password), empleado, rol);
 		usuarios.save(administrador);
 		log.info("Usuario ADMINISTRADOR inicial '{}' creado a partir de variables de entorno.",
 				administrador.getUsername());

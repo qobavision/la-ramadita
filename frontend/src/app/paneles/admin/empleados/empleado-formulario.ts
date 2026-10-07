@@ -1,8 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CARGOS } from '../admin.catalogos';
-import { AltaEmpleado } from '../personal/personal.store';
-import { EmpleadoVisual } from '../personal/personal.models';
+import { Cargo, Empleado, EmpleadoRequest } from '../../../personal/personal.models';
 
 @Component({
   selector: 'app-empleado-formulario',
@@ -26,6 +24,9 @@ import { EmpleadoVisual } from '../personal/personal.models';
         <label class="form-label" for="emp-dni">DNI</label>
         <input id="emp-dni" class="form-control" formControlName="dni" inputmode="numeric" maxlength="8" autocomplete="off" [class.is-invalid]="invalido('dni')" />
         <div class="invalid-feedback">El DNI debe tener 8 dígitos.</div>
+        @if (!dniObligatorio()) {
+          <div class="form-text">Este trabajador se migró sin DNI. Puedes dejarlo vacío o completar los 8 dígitos.</div>
+        }
       </div>
 
       <div>
@@ -51,10 +52,10 @@ import { EmpleadoVisual } from '../personal/personal.models';
 
       <div>
         <label class="form-label" for="emp-cargo">Cargo</label>
-        <select id="emp-cargo" class="form-select" formControlName="cargo" [class.is-invalid]="invalido('cargo')">
-          <option value="">Selecciona un cargo</option>
-          @for (cargo of cargos; track cargo) {
-            <option [value]="cargo">{{ cargo }}</option>
+        <select id="emp-cargo" class="form-select" formControlName="cargoId" [class.is-invalid]="invalido('cargoId')">
+          <option [ngValue]="0">Selecciona un cargo</option>
+          @for (cargo of cargos(); track cargo.id) {
+            <option [ngValue]="cargo.id">{{ cargo.nombre }}</option>
           }
         </select>
         <div class="invalid-feedback">Selecciona el cargo laboral.</div>
@@ -66,6 +67,9 @@ import { EmpleadoVisual } from '../personal/personal.models';
           <option [ngValue]="true">Activo (trabaja actualmente)</option>
           <option [ngValue]="false">Inactivo (no trabaja actualmente)</option>
         </select>
+        @if (empleado()?.archivado) {
+          <div class="form-text">Este empleado está archivado y no puede reactivarse desde Editar.</div>
+        }
       </div>
 
       @if (error()) {
@@ -82,34 +86,57 @@ import { EmpleadoVisual } from '../personal/personal.models';
 export class EmpleadoFormulario {
   private readonly fb = inject(NonNullableFormBuilder);
 
-  readonly empleado = input<EmpleadoVisual | null>(null);
+  readonly empleado = input<Empleado | null>(null);
+  readonly cargos = input<readonly Cargo[]>([]);
   readonly error = input<string | null>(null);
   readonly etiquetaGuardar = input('Registrar empleado');
-  readonly guardar = output<AltaEmpleado>();
+  readonly guardar = output<EmpleadoRequest>();
   readonly cancelar = output<void>();
 
-  protected readonly cargos = CARGOS;
+  protected readonly dniObligatorio = () => !this.empleado() || !!this.empleado()?.dni;
 
   readonly formulario = this.fb.group({
     nombres: ['', [Validators.required, Validators.minLength(2)]],
     apellidos: ['', [Validators.required, Validators.minLength(2)]],
-    dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
+    dni: ['', [Validators.pattern(/^\d{8}$/)]],
     telefono: ['', [Validators.pattern(/^$|^\d{6,15}$/)]],
     correoPersonal: ['', [Validators.email]],
-    cargo: ['', Validators.required],
+    cargoId: [0, [Validators.min(1)]],
     activo: [true],
   });
 
   constructor() {
     effect(() => {
       const actual = this.empleado();
+      const dni = this.formulario.controls.dni;
+      if (this.dniObligatorio()) {
+        dni.setValidators([Validators.required, Validators.pattern(/^\d{8}$/)]);
+      } else {
+        dni.setValidators([Validators.pattern(/^$|^\d{8}$/)]);
+      }
+      dni.updateValueAndValidity({ emitEvent: false });
       if (actual) {
-        this.formulario.patchValue(actual);
+        this.formulario.patchValue({
+          nombres: actual.nombres,
+          apellidos: actual.apellidos,
+          dni: actual.dni ?? '',
+          telefono: actual.telefono ?? '',
+          correoPersonal: actual.correoPersonal ?? '',
+          cargoId: actual.cargo.id,
+          activo: actual.activo,
+        });
+        if (actual.archivado) {
+          this.formulario.controls.activo.disable({ emitEvent: false });
+        } else {
+          this.formulario.controls.activo.enable({ emitEvent: false });
+        }
+      } else {
+        this.formulario.controls.activo.enable({ emitEvent: false });
       }
     });
   }
 
-  protected invalido(nombre: keyof AltaEmpleado): boolean {
+  protected invalido(nombre: 'nombres' | 'apellidos' | 'dni' | 'telefono' | 'correoPersonal' | 'cargoId'): boolean {
     const control = this.formulario.controls[nombre];
     return control.invalid && (control.dirty || control.touched);
   }
@@ -120,13 +147,14 @@ export class EmpleadoFormulario {
       return;
     }
     const valor = this.formulario.getRawValue();
+    const dni = valor.dni.trim();
     this.guardar.emit({
       nombres: valor.nombres.trim(),
       apellidos: valor.apellidos.trim(),
-      dni: valor.dni.trim(),
-      telefono: valor.telefono.trim(),
-      correoPersonal: valor.correoPersonal.trim(),
-      cargo: valor.cargo as AltaEmpleado['cargo'],
+      dni: dni.length === 0 ? null : dni,
+      telefono: valor.telefono.trim() || null,
+      correoPersonal: valor.correoPersonal.trim() || null,
+      cargoId: valor.cargoId,
       activo: valor.activo,
     });
   }
