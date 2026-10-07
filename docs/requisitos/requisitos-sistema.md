@@ -176,11 +176,13 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 
 
-\- Empleado: cualquier trabajador de La Ramadita, tenga o no acceso al sistema. Se registran sus datos básicos (nombre, DNI, cargo, contacto, estado).
+\- Empleado: cualquier trabajador de La Ramadita, tenga o no acceso al sistema. Se registran sus datos básicos (nombres, apellidos, DNI, teléfono, correo personal, cargo y estado).
 
-\- Usuario: cuenta de acceso al sistema asociada a un empleado.
+\- Usuario: cuenta de acceso al sistema vinculada a un empleado existente.
 
-\- No todos los empleados necesitan usuario.
+\- No todos los empleados tienen usuario.
+
+\- El username es el identificador para iniciar sesión. Es distinto del correo personal del empleado.
 
 
 
@@ -188,9 +190,11 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 
 
-\- Cargo: función laboral del empleado (cocinero, ayudante de cocina, mesero, cajero, supervisor, seguridad, almacenero u otro).
+\- Cargo: función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
 
 \- Rol: permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
+
+\- Un cargo no otorga por sí solo un rol, ni un rol implica un cargo.
 
 
 
@@ -200,9 +204,21 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 \- En esta primera versión cada usuario tiene un único rol permanente.
 
-\- Solo ADMINISTRADOR crea usuarios y modifica roles permanentes.
+\- Solo ADMINISTRADOR crea usuarios, activa o inactiva cuentas y modifica roles permanentes.
 
 \- SUPERVISOR no crea usuarios ni modifica roles permanentes.
+
+
+
+\*\*Estado activo / inactivo\*\*
+
+
+
+\- Empleado activo: trabaja actualmente. Empleado inactivo: no trabaja actualmente.
+
+\- Usuario activo: puede iniciar sesión. Usuario inactivo: no puede iniciar sesión.
+
+\- El estado del empleado y el del usuario son independientes.
 
 
 

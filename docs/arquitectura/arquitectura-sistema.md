@@ -432,7 +432,11 @@ El sistema también debe permitir consultar información consolidada.
 
 
 
-Cada trabajador debe utilizar un usuario individual.
+Empleado y usuario son entidades distintas. El empleado representa al trabajador (cargo laboral, contacto, si trabaja actualmente). El usuario es la cuenta de acceso, vinculada a un empleado, con un rol permanente. No todos los empleados tienen usuario. El username no es el correo personal.
+
+
+
+Cada trabajador que acceda al sistema debe utilizar un usuario individual.
 
 
 

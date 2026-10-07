@@ -1,18 +1,18 @@
 <app-encabezado-pagina
   eyebrow="Seguridad"
   titulo="Usuarios y accesos"
-  descripcion="Cuentas que pueden iniciar sesión en el sistema. Cada usuario pertenece a un empleado y tiene un único rol permanente."
+  descripcion="Cuentas para iniciar sesión. Cada usuario pertenece a un empleado y tiene un único rol permanente. Solo el administrador crea cuentas, cambia el rol o activa e inactiva el acceso."
 >
-  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="crear()">
+  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirCrear()">
     <app-icono nombre="mas" [tamano]="16" />
     Crear usuario
   </button>
 </app-encabezado-pagina>
 
-@if (avisoCreacion()) {
+@if (aviso(); as texto) {
   <p class="lr-nota mb-3" role="status">
-    <app-icono nombre="construccion" [tamano]="16" />
-    <span>El formulario de creación de usuarios se habilitará al conectar esta pantalla con el módulo M01. Solo el ADMINISTRADOR podrá crear cuentas y asignar roles.</span>
+    <app-icono nombre="usuarios" [tamano]="16" />
+    <span>{{ texto }}</span>
   </p>
 }
 
@@ -32,20 +32,185 @@
   <app-segmento etiqueta="Estado" [opciones]="estados" [(valor)]="estado" />
 </div>
 
-<app-tabla-listado
-  [columnas]="columnas"
-  [total]="0"
-  vacioIcono="usuarios"
-  vacioTitulo="Sin usuarios para mostrar"
-  vacioDescripcion="Aquí se listarán las cuentas de acceso con su rol permanente y su estado."
-/>
+@if (filtrados().length === 0) {
+  <app-tabla-listado
+    [columnas]="columnas"
+    [total]="0"
+    vacioIcono="usuarios"
+    [vacioTitulo]="vacioPorFiltro() ? 'Ningún usuario coincide con la búsqueda' : 'Sin usuarios para mostrar'"
+    [vacioDescripcion]="
+      vacioPorFiltro()
+        ? 'Prueba con otro empleado, username, rol o estado.'
+        : 'Crea una cuenta a partir de un empleado existente. No todos los empleados necesitan usuario.'
+    "
+  />
+} @else {
+  <div class="lr-tabla-marco--escritorio">
+  <app-tabla-listado [columnas]="columnas" [total]="filtrados().length">
+    @for (acceso of filtrados(); track acceso.id) {
+      <tr filas>
+        <td>
+          <strong>{{ acceso.empleado ? nombreDe(acceso.empleado) : 'Empleado no encontrado' }}</strong>
+        </td>
+        <td>{{ acceso.username }}</td>
+        <td>{{ etiquetaRol(acceso.rol) }}</td>
+        <td>
+          <span class="lr-estado" [class.lr-estado--activo]="acceso.activo" [class.lr-estado--inactivo]="!acceso.activo">
+            {{ acceso.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </td>
+        <td>—</td>
+        <td class="num lr-tabla__acciones">
+          <div class="lr-acciones">
+            <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(acceso)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(acceso)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" [title]="acceso.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(acceso)">
+              <app-icono nombre="poder" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
+              <app-icono nombre="clave" [tamano]="16" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    }
+  </app-tabla-listado>
+  </div>
+
+  <div class="lr-tarjetas-listado">
+    @for (acceso of filtrados(); track acceso.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ acceso.empleado ? nombreDe(acceso.empleado) : 'Empleado no encontrado' }}</strong>
+            <small>{{ acceso.username }} · {{ etiquetaRol(acceso.rol) }}</small>
+          </div>
+          <span class="lr-estado" [class.lr-estado--activo]="acceso.activo" [class.lr-estado--inactivo]="!acceso.activo">
+            {{ acceso.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </header>
+        <dl>
+          <dt>Último acceso</dt>
+          <dd>—</dd>
+        </dl>
+        <div class="lr-acciones">
+          <button type="button" class="lr-accion" title="Ver" (click)="abrirVer(acceso)">
+            <app-icono nombre="ver" [tamano]="16" />
+          </button>
+          <button type="button" class="lr-accion" title="Editar" (click)="abrirEditar(acceso)">
+            <app-icono nombre="editar" [tamano]="16" />
+          </button>
+          <button type="button" class="lr-accion" [title]="acceso.activo ? 'Inactivar' : 'Activar'" (click)="cambiarEstado(acceso)">
+            <app-icono nombre="poder" [tamano]="16" />
+          </button>
+          <button type="button" class="lr-accion" title="Restablecer contraseña" (click)="abrirClave(acceso)">
+            <app-icono nombre="clave" [tamano]="16" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+}
 
 <div class="lr-leyenda mt-3">
-  <span>Estados:</span>
+  <span>Usuario activo = puede iniciar sesión.</span>
   <span class="lr-estado lr-estado--activo">Activo</span>
   <span class="lr-estado lr-estado--inactivo">Inactivo</span>
-  <span class="ms-md-3">Roles permanentes:</span>
-  @for (r of roles; track r[0]) {
-    <span class="lr-pildora">{{ r[1] }}</span>
-  }
 </div>
+
+@if (dialogo() === 'crear' || dialogo() === 'editar') {
+  <app-dialogo
+    ancho="ancho"
+    [eyebrow]="dialogo() === 'crear' ? 'Seguridad' : 'Editar'"
+    [titulo]="dialogo() === 'crear' ? 'Crear usuario' : 'Editar usuario'"
+    descripcion="La cuenta se vincula a un empleado. El username no es el correo personal."
+    (cerrar)="cerrarDialogo()"
+  >
+    <app-usuario-formulario
+      [empleados]="empleadosDisponibles()"
+      [empleadoId]="empleadoFijoId()"
+      [username]="seleccionado()?.username ?? ''"
+      [rol]="seleccionado()?.rol ?? ''"
+      [activo]="seleccionado()?.activo ?? true"
+      [pedirClave]="dialogo() === 'crear'"
+      [error]="errorFormulario()"
+      [etiquetaGuardar]="dialogo() === 'crear' ? 'Crear usuario' : 'Guardar cambios'"
+      (guardar)="guardar($event)"
+      (cancelar)="cerrarDialogo()"
+    />
+  </app-dialogo>
+}
+
+@if (dialogo() === 'clave' && seleccionado(); as acceso) {
+  <app-dialogo
+    eyebrow="Seguridad"
+    titulo="Restablecer contraseña"
+    [descripcion]="'Cuenta ' + acceso.username + '. Esta acción todavía no se envía al servidor.'"
+    (cerrar)="cerrarDialogo()"
+  >
+    <app-usuario-formulario
+      [empleados]="empleadosDisponibles()"
+      [empleadoId]="acceso.empleadoId"
+      [username]="acceso.username"
+      [rol]="acceso.rol"
+      [activo]="acceso.activo"
+      [pedirClave]="true"
+      [soloClave]="true"
+      [error]="errorFormulario()"
+      etiquetaGuardar="Preparar restablecimiento"
+      etiquetaClave="Nueva contraseña temporal"
+      (guardar)="guardar($event)"
+      (cancelar)="cerrarDialogo()"
+    />
+  </app-dialogo>
+}
+
+@if (dialogo() === 'ver' && seleccionado(); as acceso) {
+  <app-dialogo
+    ancho="ancho"
+    eyebrow="Ficha"
+    titulo="Usuario"
+    descripcion="Cuenta de acceso vinculada a un empleado. Un usuario, un rol permanente."
+    (cerrar)="cerrarDialogo()"
+  >
+    <div class="lr-ficha lr-ficha--llena">
+      <div>
+        <span>Empleado</span>
+        <strong>{{ acceso.empleado ? nombreDe(acceso.empleado) : '—' }}</strong>
+      </div>
+      <div>
+        <span>Username</span>
+        <strong>{{ acceso.username }}</strong>
+      </div>
+      <div>
+        <span>Rol permanente</span>
+        <strong>{{ etiquetaRol(acceso.rol) }}</strong>
+      </div>
+      <div>
+        <span>Estado</span>
+        <strong>{{ acceso.activo ? 'Activo · puede iniciar sesión' : 'Inactivo · no puede iniciar sesión' }}</strong>
+      </div>
+      <div>
+        <span>Último acceso</span>
+        <strong>—</strong>
+      </div>
+      @if (acceso.empleado) {
+        <div>
+          <span>Correo personal del empleado</span>
+          <strong>{{ acceso.empleado.correoPersonal || '—' }}</strong>
+        </div>
+      }
+    </div>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="abrirClave(acceso)">Restablecer contraseña</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="cambiarEstado(acceso)">
+        {{ acceso.activo ? 'Inactivar' : 'Activar' }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="abrirEditar(acceso)">Editar</button>
+    </div>
+  </app-dialogo>
+}

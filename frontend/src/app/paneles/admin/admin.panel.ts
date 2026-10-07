@@ -11,8 +11,8 @@ export const PANEL_ADMIN: ConfiguracionPanel = {
   eyebrow: 'Panel de control',
   menu: [
     { etiqueta: 'Dashboard', icono: 'tablero', ruta: '', disponible: true },
-    { etiqueta: 'Empleados', icono: 'empleados', ruta: 'empleados' },
-    { etiqueta: 'Usuarios y accesos', icono: 'usuarios', ruta: 'usuarios' },
+    { etiqueta: 'Empleados', icono: 'empleados', ruta: 'empleados', disponible: true },
+    { etiqueta: 'Usuarios y accesos', icono: 'usuarios', ruta: 'usuarios', disponible: true },
     { etiqueta: 'Reportes / BI', icono: 'reportes', ruta: 'reportes' },
     { etiqueta: 'Control de caja', icono: 'caja', ruta: 'control-caja' },
     { etiqueta: 'Accesos operativos', icono: 'accesos', ruta: 'accesos', disponible: true },

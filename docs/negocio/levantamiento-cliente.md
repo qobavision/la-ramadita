@@ -682,7 +682,7 @@ Nota: en el sistema, el rol del dueño se denomina ADMINISTRADOR.
 
 
 
-Nota: los tipos de trabajador listados son cargos laborales. En el sistema, el cargo (función laboral) es distinto del rol (permisos). No todos los trabajadores tendrán usuario; las decisiones vigentes están en `docs/requisitos/requisitos-sistema.md` (M01) y `docs/negocio/reglas-negocio.md` (RN-36 a RN-40).
+Nota: los tipos de trabajador listados son cargos laborales. En el sistema, el cargo (función laboral) es distinto del rol (permisos). No todos los trabajadores tendrán usuario; las decisiones vigentes están en `docs/requisitos/requisitos-sistema.md` (M01) y `docs/negocio/reglas-negocio.md` (RN-36 a RN-41).
 
 
 

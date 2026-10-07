@@ -362,11 +362,15 @@ El frontend puede ocultar opciones según el rol, pero el backend debe impedir c
 
 \- SUPERVISOR no crea usuarios ni modifica roles permanentes. Más adelante podrá realizar asignaciones operativas temporales dentro de un turno.
 
-\- EMPLEADO y USUARIO son conceptos distintos: empleado es cualquier trabajador de La Ramadita; usuario es una cuenta de acceso al sistema. No todos los empleados necesitan usuario.
+\- EMPLEADO y USUARIO son entidades distintas: empleado es cualquier trabajador de La Ramadita; usuario es una cuenta de acceso al sistema vinculada a un empleado existente. No todos los empleados tienen usuario.
 
-\- CARGO y ROL son conceptos distintos: el cargo es la función laboral (cocinero, mesero, cajero, etc.); el rol define los permisos dentro del sistema.
+\- El username es el identificador para iniciar sesión. Es distinto del correo personal del empleado.
 
-\- En esta primera versión cada usuario tiene un único rol permanente.
+\- CARGO y ROL son conceptos distintos. El cargo es la función laboral. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro. El rol define los permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
+
+\- En esta primera versión cada usuario tiene un único rol permanente. Solo ADMINISTRADOR crea usuarios, activa o inactiva cuentas y cambia el rol permanente. SUPERVISOR no gestiona usuarios ni roles permanentes.
+
+\- Activo/inactivo del empleado significa si trabaja o no trabaja actualmente. Activo/inactivo del usuario significa si puede o no puede iniciar sesión. Son estados independientes.
 
 \- Se contemplan asignaciones temporales para MESERO, COCINA y CAJA (todavía sin implementar ni migración).
 

@@ -51,7 +51,8 @@ body {
   --bs-btn-focus-shadow-rgb: 216, 91, 43;
 }
 
-.form-control:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--lr-naranja);
   box-shadow: 0 0 0 0.2rem rgba(216, 91, 43, 0.2);
 }

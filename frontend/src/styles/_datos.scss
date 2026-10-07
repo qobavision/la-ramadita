@@ -183,6 +183,18 @@
     padding: 0;
     white-space: normal;
   }
+
+  td.lr-tabla__acceso,
+  td.lr-tabla__acciones {
+    white-space: normal;
+  }
+}
+
+.lr-acciones {
+  display: inline-flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 // Botón de acción dentro de una fila (editar, ver detalle...)
@@ -454,6 +466,13 @@
     font-weight: 800;
     color: #c9c2b8;
   }
+
+  &--llena strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--lr-tinta);
+    word-break: break-word;
+  }
 }
 
 // Nota informativa discreta
@@ -472,5 +491,216 @@
     flex-shrink: 0;
     margin-top: 1px;
     color: var(--lr-naranja);
+  }
+}
+
+// ---------- Diálogo / formulario superpuesto ----------
+.lr-dialogo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px 32px;
+}
+
+.lr-dialogo__fondo {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: #17161199;
+}
+
+.lr-dialogo__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(92dvh, 820px);
+  overflow: auto;
+  border-radius: 16px;
+  background: var(--lr-papel);
+  box-shadow: 0 25px 80px #0004;
+}
+
+.lr-dialogo__panel--ancho {
+  width: min(720px, 100%);
+}
+
+.lr-dialogo__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 22px 0;
+
+  h2 {
+    margin: 4px 0 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--lr-gris);
+  }
+}
+
+.lr-dialogo__cuerpo {
+  padding: 18px 22px 22px;
+}
+
+.lr-formulario {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+
+  .lr-campo--completo {
+    grid-column: 1 / -1;
+  }
+
+  .form-label {
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 42px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .form-text {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--lr-gris);
+  }
+}
+
+.lr-formulario__pie {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+  margin-top: 6px;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    border-radius: 10px;
+    font-weight: 700;
+  }
+}
+
+.lr-password {
+  position: relative;
+
+  .form-control {
+    padding-right: 44px;
+  }
+
+  button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    background: transparent;
+    color: var(--lr-gris);
+  }
+}
+
+.lr-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--lr-naranja);
+
+  &:hover {
+    color: #b94a21;
+  }
+}
+
+.lr-acceso {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+// Tarjetas de listado en pantallas estrechas
+.lr-tarjetas-listado {
+  display: none;
+  gap: 10px;
+}
+
+.lr-tarjeta-fila {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  small {
+    color: var(--lr-gris);
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  dt {
+    color: var(--lr-gris);
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .lr-formulario {
+    grid-template-columns: 1fr;
+  }
+
+  .lr-tabla-marco--escritorio {
+    display: none;
+  }
+
+  .lr-tarjetas-listado {
+    display: grid;
   }
 }
