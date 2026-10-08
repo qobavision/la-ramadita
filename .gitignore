@@ -54,6 +54,10 @@ application-local.yml
 application-secret.properties
 application-secret.yml
 
+# Copias locales accidentales. El unico archivo de ejemplo versionado es .env.example
+*.env.local
+.envrc
+
 
 # --------------------
 # SISTEMA OPERATIVO
