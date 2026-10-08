@@ -74,6 +74,40 @@
   }
 }
 
+.lr-kpi--lleno strong {
+  color: var(--lr-tinta);
+}
+
+.lr-columna > ul {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+}
+
+.lr-columna__item {
+  padding: 10px 12px;
+  border: 1px solid var(--lr-linea);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  text-align: left;
+
+  strong {
+    display: block;
+    font-size: 14px;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: var(--lr-gris);
+  }
+}
+
 // Estado vacío / "Próximamente"
 .lr-vacio {
   display: flex;

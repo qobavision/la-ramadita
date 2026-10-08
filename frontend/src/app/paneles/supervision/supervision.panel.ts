@@ -1,21 +1,18 @@
 import { ConfiguracionPanel } from '../../core/layout/panel-layout/panel.config';
 
 /**
- * Menú del panel de SUPERVISOR: control operativo, compras, inventario y
- * carta (levantamiento con el cliente §20). Por decisión del equipo el
- * SUPERVISOR no administra usuarios ni roles permanentes: eso corresponde
- * al ADMINISTRADOR (ver AGENTS.md §7).
+ * Menú del panel de SUPERVISOR: operación diaria. No administra usuarios
+ * ni roles permanentes. Ventas históricas y BI viven en Administración.
  */
 export const PANEL_SUPERVISION: ConfiguracionPanel = {
   nombre: 'Supervisión',
   eyebrow: 'Control operativo',
   menu: [
     { etiqueta: 'Inicio', icono: 'inicio', ruta: '', disponible: true },
-    { etiqueta: 'Operación', icono: 'operacion', ruta: 'operacion' },
-    { etiqueta: 'Compras', icono: 'compras', ruta: 'compras' },
-    { etiqueta: 'Inventario', icono: 'inventario', ruta: 'inventario' },
-    { etiqueta: 'Productos y carta', icono: 'carta', ruta: 'productos' },
-    { etiqueta: 'Ventas', icono: 'ventas', ruta: 'ventas' },
-    { etiqueta: 'Reportes', icono: 'reportes', ruta: 'reportes' },
+    { etiqueta: 'Turnos y personal', icono: 'reloj', ruta: 'turnos', disponible: true },
+    { etiqueta: 'Operación', icono: 'operacion', ruta: 'operacion', disponible: true },
+    { etiqueta: 'Compras y recepción', icono: 'compras', ruta: 'compras', disponible: true },
+    { etiqueta: 'Inventario', icono: 'inventario', ruta: 'inventario', disponible: true },
+    { etiqueta: 'Carta y productos', icono: 'carta', ruta: 'productos', disponible: true },
   ],
 };

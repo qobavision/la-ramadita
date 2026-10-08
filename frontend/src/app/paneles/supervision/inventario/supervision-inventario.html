@@ -1,0 +1,219 @@
+<app-encabezado-pagina
+  eyebrow="Supervisión"
+  titulo="Inventario"
+  descripcion="El stock cambia con la recepción. El estado (Normal, Stock bajo, Agotado) se calcula con el stock mínimo."
+>
+  @if (vista() === 'insumos') {
+    <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirInsumo()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Agregar insumo
+    </button>
+  }
+</app-encabezado-pagina>
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Sección" [opciones]="vistas" [(valor)]="vista" />
+  @if (vista() === 'insumos') {
+    <label class="lr-buscador">
+      <app-icono nombre="buscar" [tamano]="16" />
+      <input type="search" placeholder="Buscar insumo" [value]="busqueda()" (input)="actualizarBusqueda($event)" />
+    </label>
+  }
+</div>
+
+@if (vista() === 'insumos') {
+  @if (filtrados().length === 0) {
+    <app-tabla-listado
+      [columnas]="columnasInsumos"
+      [total]="0"
+      vacioIcono="inventario"
+      [vacioTitulo]="vacioPorFiltro() ? 'Ningún insumo coincide con la búsqueda' : 'Todavía no hay insumos'"
+      [vacioDescripcion]="
+        vacioPorFiltro()
+          ? 'Prueba con otro nombre o unidad.'
+          : 'Agrega el primer insumo. La unidad que elijas será la misma en compras, recepción y recetas.'
+      "
+    />
+  } @else {
+    <div class="lr-tabla-marco--escritorio">
+      <app-tabla-listado [columnas]="columnasInsumos" [total]="filtrados().length">
+        @for (i of filtrados(); track i.id) {
+          <tr filas>
+            <td><strong>{{ i.nombre }}</strong></td>
+            <td>{{ i.unidad }}</td>
+            <td class="num">{{ formatoCantidad(i.stock) }}</td>
+            <td>
+              <span class="lr-estado {{ claseStock(estadoDe(i.stock, i.minimo)) }}">{{ estadoDe(i.stock, i.minimo) }}</span>
+            </td>
+            <td class="num lr-tabla__acciones">
+              <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+            </td>
+          </tr>
+        }
+      </app-tabla-listado>
+    </div>
+    <div class="lr-tarjetas-listado">
+      @for (i of filtrados(); track i.id) {
+        <article class="lr-tarjeta lr-tarjeta-fila">
+          <header>
+            <div>
+              <strong>{{ i.nombre }}</strong>
+              <small>{{ i.unidad }} · Stock {{ formatoCantidad(i.stock) }}</small>
+            </div>
+            <span class="lr-estado {{ claseStock(estadoDe(i.stock, i.minimo)) }}">{{ estadoDe(i.stock, i.minimo) }}</span>
+          </header>
+          <div class="lr-acciones">
+            <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+}
+
+@if (vista() === 'movimientos') {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasMov" [total]="movimientos().length">
+      @for (m of movimientos(); track m.id) {
+        <tr filas>
+          <td>{{ m.fecha }}</td>
+          <td><strong>{{ m.insumo }}</strong></td>
+          <td>
+            <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'Entrada'" [class.lr-estado--abierta]="m.tipo === 'Salida'">
+              {{ m.tipo }}
+            </span>
+          </td>
+          <td class="num">{{ m.cantidad }}</td>
+          <td>{{ m.motivo }}</td>
+          <td>{{ m.responsable }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (m of movimientos(); track m.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ m.insumo }}</strong>
+            <small>{{ m.fecha }}</small>
+          </div>
+          <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'Entrada'">{{ m.tipo }}</span>
+        </header>
+        <dl>
+          <dt>Cantidad</dt>
+          <dd>{{ m.cantidad }}</dd>
+          <dt>Motivo</dt>
+          <dd>{{ m.motivo }}</dd>
+        </dl>
+      </article>
+    }
+  </div>
+}
+
+@if (vista() === 'recetas') {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasRecetas" [total]="recetas().length">
+      @for (r of recetas(); track r.id) {
+        <tr filas>
+          <td><strong>{{ r.producto }}</strong></td>
+          <td class="num">{{ r.insumos.length }}</td>
+          <td>
+            <span class="lr-estado" [class.lr-estado--activo]="r.activa">{{ r.activa ? 'Activa' : 'Inactiva' }}</span>
+          </td>
+          <td class="num lr-tabla__acciones">
+            <button type="button" class="lr-accion" title="Ver receta" (click)="ver(r)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (r of recetas(); track r.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ r.producto }}</strong>
+            <small>{{ r.insumos.length }} insumos</small>
+          </div>
+          <button type="button" class="lr-accion" title="Ver receta" (click)="ver(r)">
+            <app-icono nombre="ver" [tamano]="16" />
+          </button>
+        </header>
+      </article>
+    }
+  </div>
+}
+
+@if (recetaSel(); as r) {
+  <app-dialogo
+    eyebrow="Receta"
+    [titulo]="r.producto"
+    descripcion="Relación producto → insumos. El consumo automático todavía no está activo."
+    (cerrar)="recetaSel.set(null)"
+  >
+    <app-tabla-listado [columnas]="[{ titulo: 'Insumo' }, { titulo: 'Cantidad', numerica: true }]" [total]="r.insumos.length">
+      @for (i of r.insumos; track i.insumo) {
+        <tr filas>
+          <td>{{ i.insumo }}</td>
+          <td class="num">{{ i.cantidad }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+    <div class="lr-formulario__pie mt-3">
+      <button type="button" class="btn btn-outline-secondary" (click)="recetaSel.set(null)">Cerrar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo()) {
+  <app-dialogo
+    eyebrow="Inventario"
+    [titulo]="editando() ? 'Editar insumo' : 'Agregar insumo'"
+    [descripcion]="
+      editando()
+        ? 'El stock real más adelante se actualizará sobre todo con la recepción.'
+        : 'La unidad elegida será la unidad base de este insumo.'
+    "
+    (cerrar)="dialogo.set(false)"
+  >
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <div class="lr-formulario">
+      <div class="lr-campo--completo">
+        <label class="form-label" for="ins-nom">Nombre del insumo</label>
+        <input id="ins-nom" class="form-control" [ngModel]="nombre()" (ngModelChange)="nombre.set($event)" />
+      </div>
+      <div>
+        <label class="form-label" for="ins-uni">Unidad de medida</label>
+        <select id="ins-uni" class="form-select" [ngModel]="unidad()" (ngModelChange)="unidad.set($event)">
+          @for (u of unidades; track u) {
+            <option [ngValue]="u">{{ u }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="ins-min">Stock mínimo</label>
+        <input id="ins-min" class="form-control" type="number" min="0" step="any" [ngModel]="minimo()" (ngModelChange)="minimo.set($event)" />
+      </div>
+      <div class="lr-campo--completo">
+        <label class="form-label" for="ins-stk">{{ editando() ? 'Stock actual' : 'Stock inicial' }}</label>
+        <input id="ins-stk" class="form-control" type="number" min="0" step="any" [ngModel]="stock()" (ngModelChange)="stock.set($event)" />
+        @if (editando()) {
+          <div class="form-text">En esta demo puedes ajustarlo para probar. Después subirá con la recepción.</div>
+        }
+      </div>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="dialogo.set(false)">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarInsumo()">Guardar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}

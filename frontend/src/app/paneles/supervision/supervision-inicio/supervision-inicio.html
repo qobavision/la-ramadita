@@ -1,31 +1,47 @@
 <app-encabezado-pagina
   eyebrow="Supervisión"
   titulo="Operación del día"
-  descripcion="Seguimiento de la atención, las compras y el inventario. Los indicadores se activarán con cada módulo."
+  descripcion="Seguimiento de la atención, las compras y el inventario. Los números son de demostración."
 >
-  <span acciones class="lr-pildora">Restaurante · Pollería</span>
+  <span acciones class="lr-pildora">{{ turno().unidad }} · {{ turno().estado }}</span>
 </app-encabezado-pagina>
 
+@if (turno().alerta; as alerta) {
+  <p class="lr-nota mb-3" role="status">
+    <app-icono nombre="alerta" [tamano]="16" />
+    <span>{{ alerta }}</span>
+  </p>
+}
+
 <section class="lr-rejilla" aria-label="Indicadores">
-  @for (kpi of indicadores; track kpi.etiqueta) {
-    <article class="lr-kpi">
+  @for (kpi of indicadores(); track kpi.etiqueta) {
+    <article class="lr-kpi lr-kpi--lleno">
       <span>{{ kpi.etiqueta }}</span>
-      <strong aria-label="Sin datos">—</strong>
+      <strong>{{ kpi.valor }}</strong>
       <small>{{ kpi.nota }}</small>
       <app-icono [nombre]="kpi.icono" [tamano]="18" />
     </article>
   }
 </section>
 
+<div class="lr-leyenda mt-3">
+  <span>Caja</span>
+  <span class="lr-estado" [class.lr-estado--activo]="turno().caja === 'Abierta'" [class.lr-estado--abierta]="turno().caja === 'Pendiente de cierre'">
+    {{ turno().caja }}
+  </span>
+  <span>Turno</span>
+  <span class="lr-estado {{ claseTurno(turno().estado) }}">{{ turno().estado }}</span>
+</div>
+
 <h2 class="lr-seccion">Áreas a supervisar</h2>
 <section class="lr-rejilla lr-rejilla--ancha">
   @for (m of modulos; track m.ruta) {
     <app-tarjeta-modulo
       [titulo]="m.etiqueta"
-      descripcion="Acceso de supervisión según permisos del rol."
+      [descripcion]="descripcionDe[m.ruta] ?? 'Acceso de supervisión.'"
       [icono]="m.icono"
       [ruta]="m.ruta"
-      [disponible]="m.disponible === true"
+      [disponible]="true"
     />
   }
 </section>

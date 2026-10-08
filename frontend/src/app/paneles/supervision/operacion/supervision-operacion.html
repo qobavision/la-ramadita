@@ -1,0 +1,306 @@
+<app-encabezado-pagina
+  eyebrow="Supervisión"
+  titulo="Operación"
+  descripcion="Monitoreo de mesas, pedidos y cocina. El Supervisor no cobra, no toma pedidos ni marca platos preparados."
+>
+  <span acciones class="lr-pildora">Solo consulta</span>
+</app-encabezado-pagina>
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Vista" [opciones]="vistas" [(valor)]="vista" />
+</div>
+
+@if (vista() === 'resumen') {
+  <section class="lr-rejilla" aria-label="Resumen operativo">
+    @for (k of kpis(); track k.etiqueta) {
+      <article class="lr-kpi lr-kpi--lleno">
+        <span>{{ k.etiqueta }}</span>
+        <strong>{{ k.valor }}</strong>
+        <small>Datos de demostración</small>
+        <app-icono [nombre]="k.icono" [tamano]="18" />
+      </article>
+    }
+  </section>
+}
+
+@if (vista() === 'mesas') {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasMesas" [total]="mesas().length">
+      @for (m of mesas(); track m.id) {
+        <tr filas>
+          <td><strong>{{ m.nombre }}</strong></td>
+          <td>{{ m.zona }}</td>
+          <td>
+            <span class="lr-estado" [class.lr-estado--activo]="m.estadoOp === 'Libre'" [class.lr-estado--abierta]="m.estadoOp === 'Ocupada'">
+              {{ m.estadoOp }}
+            </span>
+          </td>
+          <td>{{ m.atencion ?? '—' }}</td>
+          <td>{{ m.mesero ?? '—' }}</td>
+          <td>{{ m.tiempo ?? '—' }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (m of mesas(); track m.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ m.nombre }}</strong>
+            <small>{{ m.zona }}</small>
+          </div>
+          <span class="lr-estado" [class.lr-estado--abierta]="m.estadoOp === 'Ocupada'">{{ m.estadoOp }}</span>
+        </header>
+        <dl>
+          <dt>Atención</dt>
+          <dd>{{ m.atencion ?? '—' }}</dd>
+          <dt>Mesero</dt>
+          <dd>{{ m.mesero ?? '—' }}</dd>
+          <dt>Tiempo</dt>
+          <dd>{{ m.tiempo ?? '—' }}</dd>
+        </dl>
+      </article>
+    }
+  </div>
+}
+
+@if (vista() === 'pedidos') {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasPedidos" [total]="pedidos().length">
+      @for (p of pedidos(); track p.id) {
+        <tr filas>
+          <td><strong>{{ p.id }}</strong></td>
+          <td>{{ p.origen }}</td>
+          <td><span class="lr-estado {{ clasePedido(p.estado) }}">{{ p.estado }}</span></td>
+          <td>{{ p.hora }}</td>
+          <td>{{ p.responsable }}</td>
+          <td>{{ p.cocina }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (p of pedidos(); track p.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ p.id }}</strong>
+            <small>{{ p.origen }} · {{ p.hora }}</small>
+          </div>
+          <span class="lr-estado {{ clasePedido(p.estado) }}">{{ p.estado }}</span>
+        </header>
+        <dl>
+          <dt>Responsable</dt>
+          <dd>{{ p.responsable }}</dd>
+          <dt>Cocina</dt>
+          <dd>{{ p.cocina }}</dd>
+        </dl>
+      </article>
+    }
+  </div>
+}
+
+@if (vista() === 'cocina') {
+  <section class="lr-rejilla lr-rejilla--ancha" aria-label="Tablero de cocina">
+    <article class="lr-tarjeta lr-columna lr-columna--pendiente">
+      <header>Pendientes <small>{{ pendientesCocina().length }}</small></header>
+      <ul>
+        @for (p of pendientesCocina(); track p.id) {
+          <li class="lr-columna__item">
+            <strong>{{ p.id }} · {{ p.origen }}</strong>
+            <small>{{ p.hora }} · {{ p.responsable }}</small>
+          </li>
+        }
+      </ul>
+    </article>
+    <article class="lr-tarjeta lr-columna lr-columna--proceso">
+      <header>En preparación <small>{{ enCursoCocina().length }}</small></header>
+      <ul>
+        @for (p of enCursoCocina(); track p.id) {
+          <li class="lr-columna__item">
+            <strong>{{ p.id }} · {{ p.origen }}</strong>
+            <small>{{ p.cocina }}</small>
+          </li>
+        }
+      </ul>
+    </article>
+    <article class="lr-tarjeta lr-columna lr-columna--listo">
+      <header>Preparados <small>{{ listosCocina().length }}</small></header>
+      <ul>
+        @for (p of listosCocina(); track p.id) {
+          <li class="lr-columna__item">
+            <strong>{{ p.id }} · {{ p.origen }}</strong>
+            <small>{{ p.hora }}</small>
+          </li>
+        }
+      </ul>
+    </article>
+  </section>
+  <h2 class="lr-seccion">Modificados y cancelados</h2>
+  @if (otrosCocina().length === 0) {
+    <p class="text-secondary small">No hay cambios en este momento.</p>
+  } @else {
+    <div class="lr-leyenda">
+      @for (p of otrosCocina(); track p.id) {
+        <span class="lr-estado {{ clasePedido(p.estado) }}">{{ p.id }} · {{ p.estado }}</span>
+      }
+    </div>
+  }
+}
+
+@if (vista() === 'config') {
+  <div class="lr-herramientas">
+    <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirZona()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Nueva zona
+    </button>
+    <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" (click)="abrirMesa()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Registrar mesa
+    </button>
+  </div>
+
+  <h2 class="lr-seccion">Zonas</h2>
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasZonas" [total]="zonas().length">
+      @for (z of zonas(); track z.id) {
+        <tr filas>
+          <td><strong>{{ z.nombre }}</strong></td>
+          <td>{{ mesasDe(z) }}</td>
+          <td>
+            <span class="lr-estado" [class.lr-estado--activo]="z.activa" [class.lr-estado--inactivo]="!z.activa">
+              {{ z.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </td>
+          <td class="num lr-tabla__acciones">
+            <div class="lr-acciones">
+              <button type="button" class="lr-accion" title="Editar zona" (click)="abrirZona(z)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" [title]="z.activa ? 'Inactivar' : 'Activar'" (click)="alternarZona(z)">
+                <app-icono nombre="poder" [tamano]="16" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (z of zonas(); track z.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ z.nombre }}</strong>
+            <small>{{ mesasDe(z) }} mesas</small>
+          </div>
+          <span class="lr-estado" [class.lr-estado--activo]="z.activa">{{ z.activa ? 'Activa' : 'Inactiva' }}</span>
+        </header>
+        <div class="lr-acciones">
+          <button type="button" class="lr-accion" title="Editar zona" (click)="abrirZona(z)">
+            <app-icono nombre="editar" [tamano]="16" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+
+  <h2 class="lr-seccion">Mesas</h2>
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasConfigMesas" [total]="mesas().length">
+      @for (m of mesas(); track m.id) {
+        <tr filas>
+          <td><strong>{{ m.nombre }}</strong></td>
+          <td>{{ m.zona }}</td>
+          <td>
+            <span class="lr-estado" [class.lr-estado--activo]="m.activa" [class.lr-estado--inactivo]="!m.activa">
+              {{ m.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </td>
+          <td>{{ m.estadoOp }}</td>
+          <td class="num lr-tabla__acciones">
+            <div class="lr-acciones">
+              <button type="button" class="lr-accion" title="Editar mesa" (click)="abrirMesa(m)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" [title]="m.activa ? 'Inactivar' : 'Activar'" (click)="alternarMesa(m)">
+                <app-icono nombre="poder" [tamano]="16" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (m of mesas(); track m.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ m.nombre }}</strong>
+            <small>{{ m.zona }}</small>
+          </div>
+          <span class="lr-estado" [class.lr-estado--activo]="m.activa">{{ m.activa ? 'Activa' : 'Inactiva' }}</span>
+        </header>
+        <div class="lr-acciones">
+          <button type="button" class="lr-accion" title="Editar mesa" (click)="abrirMesa(m)">
+            <app-icono nombre="editar" [tamano]="16" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (dialogo() === 'zona') {
+  <app-dialogo eyebrow="Operación" [titulo]="zonaEdicion() ? 'Editar zona' : 'Nueva zona'" (cerrar)="cerrar()">
+    <div class="lr-formulario" style="grid-template-columns: 1fr">
+      <div>
+        <label class="form-label" for="zona-nombre">Nombre</label>
+        <input id="zona-nombre" class="form-control" [ngModel]="nombreZona()" (ngModelChange)="nombreZona.set($event)" />
+      </div>
+      <div>
+        <label class="form-label" for="zona-activa">Estado</label>
+        <select id="zona-activa" class="form-select" [ngModel]="zonaActiva()" (ngModelChange)="zonaActiva.set($event)">
+          <option [ngValue]="true">Activa</option>
+          <option [ngValue]="false">Inactiva</option>
+        </select>
+      </div>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarZona()">Guardar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'mesa') {
+  <app-dialogo eyebrow="Operación" [titulo]="mesaEdicion() ? 'Editar mesa' : 'Registrar mesa'" (cerrar)="cerrar()">
+    <div class="lr-formulario" style="grid-template-columns: 1fr">
+      <div>
+        <label class="form-label" for="mesa-nombre">Número / nombre</label>
+        <input id="mesa-nombre" class="form-control" [ngModel]="nombreMesa()" (ngModelChange)="nombreMesa.set($event)" />
+      </div>
+      <div>
+        <label class="form-label" for="mesa-zona">Zona</label>
+        <select id="mesa-zona" class="form-select" [ngModel]="zonaMesaId()" (ngModelChange)="zonaMesaId.set($event)">
+          @for (z of zonas(); track z.id) {
+            <option [ngValue]="z.id">{{ z.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="form-label" for="mesa-activa">Configuración</label>
+        <select id="mesa-activa" class="form-select" [ngModel]="mesaActiva()" (ngModelChange)="mesaActiva.set($event)">
+          <option [ngValue]="true">Activa</option>
+          <option [ngValue]="false">Inactiva</option>
+        </select>
+      </div>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarMesa()">Guardar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}
