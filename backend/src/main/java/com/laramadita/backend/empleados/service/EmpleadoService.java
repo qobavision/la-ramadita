@@ -14,6 +14,7 @@ import com.laramadita.backend.shared.error.ReglaNegocioException;
 import com.laramadita.backend.usuarios.model.Usuario;
 import com.laramadita.backend.usuarios.repository.UsuarioRepository;
 import com.laramadita.backend.usuarios.service.UsuarioService;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class EmpleadoService {
 
+	private static final List<String> ORDEN_CARGOS = List.of(
+			"Supervisor",
+			"Cajero",
+			"Ayudante de cajero",
+			"Cocinero",
+			"Ayudante de cocina",
+			"Mesero",
+			"Motorizado",
+			"Almacenero",
+			"Seguridad",
+			"Otro");
+
 	private final EmpleadoRepository empleados;
 	private final CargoRepository cargos;
 	private final UsuarioRepository usuarios;
@@ -46,7 +59,15 @@ public class EmpleadoService {
 
 	@Transactional(readOnly = true)
 	public List<CargoResponse> listarCargos() {
-		return cargos.findAllByActivoTrueOrderByNombreAsc().stream().map(CargoResponse::de).toList();
+		return cargos.findAllByActivoTrueOrderByNombreAsc().stream()
+				.sorted(Comparator.comparingInt(cargo -> indiceOrdenCargo(cargo.getNombre())))
+				.map(CargoResponse::de)
+				.toList();
+	}
+
+	private static int indiceOrdenCargo(String nombre) {
+		int indice = ORDEN_CARGOS.indexOf(nombre);
+		return indice < 0 ? ORDEN_CARGOS.size() : indice;
 	}
 
 	@Transactional(readOnly = true)

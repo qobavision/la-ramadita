@@ -482,7 +482,7 @@ Tablas de M01 a partir de V3:
 
 
 
-\- `dbo.cargos`: catálogo de puestos laborales (no son roles). Semilla: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+\- `dbo.cargos`: catálogo de puestos laborales (no son roles). Semilla V3 más Ayudante de cajero y Motorizado (V6): Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo.
 
 \- `dbo.empleados`: trabajadores. DNI único de 8 dígitos cuando existe; puede ser NULL solo en registros heredados de usuarios que no tenían DNI. `archivado` (V4) marca la baja lógica. `fecha_archivado` (V5) es cuándo se pulsó Eliminar.
 

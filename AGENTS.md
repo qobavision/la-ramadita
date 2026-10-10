@@ -366,7 +366,7 @@ El frontend puede ocultar opciones según el rol, pero el backend debe impedir c
 
 \- El username es el identificador para iniciar sesión. Es distinto del correo personal del empleado.
 
-\- CARGO y ROL son conceptos distintos. El cargo es la función laboral. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro. El rol define los permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
+\- CARGO y ROL son conceptos distintos. El cargo es la función laboral. Cargos: Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo: es el rol ADMINISTRADOR. El rol define los permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
 
 \- En esta primera versión cada usuario tiene un único rol permanente. Solo ADMINISTRADOR crea usuarios, activa o inactiva cuentas y cambia el rol permanente. SUPERVISOR no gestiona usuarios ni roles permanentes.
 
@@ -537,6 +537,8 @@ Actualmente existen:
 `V4\\\_\\\_archivado\\\_y\\\_ultimo\\\_acceso.sql`
 
 `V5\\\_\\\_fecha\\\_archivado.sql`
+
+`V6\\\_\\\_cargos\\\_ayudante\\\_cajero\\\_y\\\_motorizado.sql`
 
 
 

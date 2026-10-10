@@ -192,7 +192,7 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 
 
-\- Cargo: función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+\- Cargo: función laboral del empleado. Cargos: Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo: es un rol del sistema.
 
 \- Rol: permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
 

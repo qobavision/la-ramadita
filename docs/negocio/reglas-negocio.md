@@ -814,7 +814,7 @@ El username es el identificador para iniciar sesión y es distinto del correo pe
 
 
 
-El cargo es la función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+El cargo es la función laboral del empleado. Cargos: Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo.
 
 
 
