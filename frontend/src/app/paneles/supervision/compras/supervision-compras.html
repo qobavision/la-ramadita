@@ -38,7 +38,7 @@
       <app-tabla-listado [columnas]="columnasCompras" [total]="compras().length">
         @for (c of compras(); track c.id) {
           <tr filas>
-            <td><strong>{{ c.id }}</strong></td>
+            <td><strong>{{ c.codigo }}</strong></td>
             <td>{{ c.proveedor }}</td>
             <td>{{ resumenDe(c.lineas) }}</td>
             <td>{{ c.fecha }}</td>
@@ -54,6 +54,11 @@
                     <app-icono nombre="editar" [tamano]="16" />
                   </button>
                 }
+                @if (puedeEliminar(c)) {
+                  <button type="button" class="lr-accion" title="Eliminar compra" (click)="pedirEliminarCompra(c)">
+                    <app-icono nombre="eliminar" [tamano]="16" />
+                  </button>
+                }
               </div>
             </td>
           </tr>
@@ -65,7 +70,7 @@
         <article class="lr-tarjeta lr-tarjeta-fila">
           <header>
             <div>
-              <strong>{{ c.id }}</strong>
+              <strong>{{ c.codigo }}</strong>
               <small>{{ c.proveedor }} · {{ resumenDe(c.lineas) }}</small>
             </div>
             <span class="lr-estado {{ claseCompra(estadoDe(c)) }}">{{ estadoDe(c) }}</span>
@@ -83,6 +88,11 @@
             @if (puedeEditar(c)) {
               <button type="button" class="lr-accion" title="Editar compra" (click)="abrirCompra(c)">
                 <app-icono nombre="editar" [tamano]="16" />
+              </button>
+            }
+            @if (puedeEliminar(c)) {
+              <button type="button" class="lr-accion" title="Eliminar compra" (click)="pedirEliminarCompra(c)">
+                <app-icono nombre="eliminar" [tamano]="16" />
               </button>
             }
           </div>
@@ -106,15 +116,17 @@
       <app-tabla-listado [columnas]="columnasRecepcion" [total]="listaRecepcion().length">
         @for (c of listaRecepcion(); track c.id) {
           <tr filas>
-            <td><strong>{{ c.id }}</strong></td>
+            <td><strong>{{ c.codigo }}</strong></td>
             <td>{{ c.proveedor }}</td>
             <td>{{ resumenDe(c.lineas, true) }}</td>
             <td><span class="lr-estado {{ claseCompra(estadoDe(c)) }}">{{ estadoDe(c) }}</span></td>
             <td class="num lr-tabla__acciones">
               @if (estadoDe(c) !== 'Recibida') {
-                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirRecepcion(c)">Recibir</button>
+                <button type="button" class="lr-accion" title="Recibir compra" (click)="abrirRecepcion(c)">
+                  <app-icono nombre="recibir" [tamano]="16" />
+                </button>
               } @else {
-                <button type="button" class="lr-accion" title="Ver" (click)="ver(c)">
+                <button type="button" class="lr-accion" title="Ver detalle" (click)="ver(c)">
                   <app-icono nombre="ver" [tamano]="16" />
                 </button>
               }
@@ -128,13 +140,19 @@
         <article class="lr-tarjeta lr-tarjeta-fila">
           <header>
             <div>
-              <strong>{{ c.id }}</strong>
+              <strong>{{ c.codigo }}</strong>
               <small>{{ c.proveedor }} · {{ resumenDe(c.lineas, true) }}</small>
             </div>
             <span class="lr-estado {{ claseCompra(estadoDe(c)) }}">{{ estadoDe(c) }}</span>
           </header>
           @if (estadoDe(c) !== 'Recibida') {
-            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirRecepcion(c)">Recibir</button>
+            <button type="button" class="lr-accion" title="Recibir compra" (click)="abrirRecepcion(c)">
+              <app-icono nombre="recibir" [tamano]="16" />
+            </button>
+          } @else {
+            <button type="button" class="lr-accion" title="Ver detalle" (click)="ver(c)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
           }
         </article>
       }
@@ -190,7 +208,7 @@
             <span class="lr-estado" [class.lr-estado--activo]="p.activo">{{ p.activo ? 'Activo' : 'Inactivo' }}</span>
           </header>
           <dl>
-            <dt>Teléfono</dt>
+            <dt>Celular</dt>
             <dd>{{ p.telefono || '—' }}</dd>
             <dt>Contacto</dt>
             <dd>{{ p.contacto || '—' }}</dd>
@@ -210,7 +228,7 @@
 }
 
 @if (dialogo() === 'detalle' && compraSel(); as c) {
-  <app-dialogo eyebrow="Compra" [titulo]="c.id" [descripcion]="c.proveedor + ' · ' + c.fecha" (cerrar)="cerrar()">
+  <app-dialogo eyebrow="Compra" [titulo]="c.codigo" [descripcion]="c.proveedor + ' · ' + c.fecha" (cerrar)="cerrar()">
     <p class="mb-3">
       <span class="lr-estado {{ claseCompra(estadoDe(c)) }}">{{ estadoDe(c) }}</span>
     </p>
@@ -223,6 +241,12 @@
           </div>
         </header>
         <dl>
+          <dt>Pedido</dt>
+          <dd>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }}</dd>
+          <dt>Recibido</dt>
+          <dd>{{ cant(l.recibido) }} {{ unidadDe(l.unidad) }}</dd>
+          <dt>Precio</dt>
+          <dd>{{ soles(l.precioUnitario) }} c/u</dd>
           <dt>Subtotal</dt>
           <dd>{{ soles(l.cantidad * l.precioUnitario) }}</dd>
         </dl>
@@ -257,7 +281,7 @@
         <label class="form-label" for="comp-prov">Proveedor</label>
         <select id="comp-prov" class="form-select" [ngModel]="compraProveedorId()" (ngModelChange)="compraProveedorId.set($event)">
           <option [ngValue]="0">Selecciona un proveedor</option>
-          @for (p of proveedoresActivos(); track p.id) {
+          @for (p of proveedoresParaCompra(); track p.id) {
             <option [ngValue]="p.id">{{ p.nombre }}</option>
           }
         </select>
@@ -307,13 +331,16 @@
     <p class="fw-bold">TOTAL DE COMPRA {{ soles(totalForm()) }}</p>
     <div class="lr-formulario__pie">
       <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
-      <button type="button" class="btn btn-primary" (click)="guardarCompra()">Guardar</button>
+      <button type="button" class="btn btn-primary" (click)="guardarCompra()" [disabled]="enviando()">Guardar</button>
     </div>
   </app-dialogo>
 }
 
 @if (dialogo() === 'recepcion' && compraSel(); as c) {
-  <app-dialogo ancho="ancho" eyebrow="Recepción" [titulo]="c.id" [descripcion]="c.proveedor" (cerrar)="cerrar()">
+  <app-dialogo ancho="ancho" eyebrow="Recepción" [titulo]="c.codigo" [descripcion]="c.proveedor" (cerrar)="cerrar()">
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
     <p class="mb-3">
       <span class="lr-estado {{ claseCompra(estadoDe(c)) }}">{{ estadoDe(c) }}</span>
     </p>
@@ -322,49 +349,70 @@
         <header>
           <div>
             <strong>{{ l.insumo }}</strong>
-            <small>
-              Pedido {{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }}
-              · Recibido {{ cant(l.recibido) }}
-              · Pendiente {{ cant(pendienteDe(l)) }}
-            </small>
+            <small>{{ unidadDe(l.unidad) }}</small>
           </div>
           <span class="lr-estado {{ claseCompra(estadoItem(l)) }}">{{ estadoItem(l) }}</span>
         </header>
+        <dl>
+          <dt>Pedido</dt>
+          <dd>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }}</dd>
+          <dt>Ya recibido</dt>
+          <dd>{{ cant(l.recibido) }} {{ unidadDe(l.unidad) }}</dd>
+          <dt>Pendiente</dt>
+          <dd>{{ cant(pendienteDe(l)) }} {{ unidadDe(l.unidad) }}</dd>
+        </dl>
         @if (pendienteDe(l) > 0) {
-          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrirRecibir(l)">Recibir</button>
+          @if (formRecepcion(l.id); as f) {
+            <div class="lr-formulario">
+              <div>
+                <label class="form-label" [attr.for]="'rec-ahora-' + l.id">Recibir ahora</label>
+                <input
+                  [id]="'rec-ahora-' + l.id"
+                  class="form-control"
+                  type="number"
+                  min="0"
+                  step="any"
+                  [ngModel]="f.cantidadAhora"
+                  (ngModelChange)="cambiarCantidadAhora(l, $event)"
+                />
+              </div>
+              <div class="d-flex align-items-end pb-1">
+                <label class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [ngModel]="f.completo"
+                    (ngModelChange)="marcarCompleto(l, $event)"
+                  />
+                  <span class="form-check-label">Completo</span>
+                </label>
+              </div>
+            </div>
+          }
+        } @else {
+          <p class="form-text mb-0">Este insumo ya está completo y no se puede recibir más.</p>
         }
       </article>
     }
     <div class="lr-formulario__pie">
-      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cerrar</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarRecepcion()" [disabled]="enviando()">Confirmar recepción</button>
     </div>
   </app-dialogo>
 }
 
-@if (dialogo() === 'recibir' && compraSel(); as c) {
-  @if (lineaSel(); as l) {
-    <app-dialogo eyebrow="Recepción" [titulo]="'Recibir: ' + l.insumo" [descripcion]="c.id" (cerrar)="volverRecepcion()">
-      @if (error(); as texto) {
-        <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
-      }
-      <dl class="lr-ficha">
-        <dt>Pedido</dt>
-        <dd>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }}</dd>
-        <dt>Ya recibido</dt>
-        <dd>{{ cant(l.recibido) }} {{ unidadDe(l.unidad) }}</dd>
-        <dt>Pendiente</dt>
-        <dd>{{ cant(pendienteDe(l)) }} {{ unidadDe(l.unidad) }}</dd>
-      </dl>
-      <div class="mb-3">
-        <label class="form-label" for="cant-rec">Cantidad recibida ahora</label>
-        <input id="cant-rec" class="form-control" type="number" min="0" step="any" [ngModel]="cantidadAhora()" (ngModelChange)="cantidadAhora.set($event)" />
-      </div>
-      <div class="lr-formulario__pie">
-        <button type="button" class="btn btn-outline-secondary" (click)="volverRecepcion()">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="confirmarRecepcion()">Confirmar recepción</button>
-      </div>
-    </app-dialogo>
-  }
+@if (dialogo() === 'eliminar-compra' && compraBorrar(); as c) {
+  <app-dialogo eyebrow="Compras" titulo="Eliminar compra" (cerrar)="cerrar()">
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">¿Deseas eliminar esta compra pendiente?</p>
+    <p class="mb-3"><strong>{{ c.codigo }}</strong> saldrá del listado operativo. Solo se puede cancelar si todavía no hubo recepción.</p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminarCompra()" [disabled]="enviando()">Eliminar</button>
+    </div>
+  </app-dialogo>
 }
 
 @if (dialogo() === 'proveedor') {
@@ -379,18 +427,36 @@
       </div>
       <div>
         <label class="form-label" for="prov-tipo">Tipo de documento</label>
-        <select id="prov-tipo" class="form-select" [ngModel]="proveedorTipo()" (ngModelChange)="proveedorTipo.set($event)">
+        <select id="prov-tipo" class="form-select" [ngModel]="proveedorTipo()" (ngModelChange)="cambiarTipoDocumento($event)">
           <option [ngValue]="'RUC'">RUC</option>
           <option [ngValue]="'DNI'">DNI</option>
         </select>
       </div>
       <div>
         <label class="form-label" for="prov-doc">Número de documento</label>
-        <input id="prov-doc" class="form-control" [ngModel]="proveedorDoc()" (ngModelChange)="proveedorDoc.set($event)" />
+        <input
+          id="prov-doc"
+          class="form-control"
+          inputmode="numeric"
+          [maxlength]="longitudDoc()"
+          [placeholder]="ayudaDocumento()"
+          [ngModel]="proveedorDoc()"
+          (ngModelChange)="cambiarDocumento($event)"
+        />
+        <div class="form-text">{{ ayudaDocumento() }}</div>
       </div>
       <div>
-        <label class="form-label" for="prov-tel">Teléfono</label>
-        <input id="prov-tel" class="form-control" [ngModel]="proveedorTel()" (ngModelChange)="proveedorTel.set($event)" />
+        <label class="form-label" for="prov-tel">Celular</label>
+        <input
+          id="prov-tel"
+          class="form-control"
+          inputmode="numeric"
+          maxlength="9"
+          placeholder="9 dígitos"
+          [ngModel]="proveedorTel()"
+          (ngModelChange)="cambiarCelular($event)"
+        />
+        <div class="form-text">Opcional. Si lo completas, deben ser 9 dígitos.</div>
       </div>
       <div>
         <label class="form-label" for="prov-con">Persona de contacto</label>
@@ -405,7 +471,7 @@
       </div>
       <div class="lr-formulario__pie">
         <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="guardarProveedor()">Guardar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarProveedor()" [disabled]="enviando()">Guardar</button>
       </div>
     </div>
   </app-dialogo>

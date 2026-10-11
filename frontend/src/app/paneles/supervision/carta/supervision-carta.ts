@@ -74,8 +74,8 @@ export class SupervisionCarta {
   }
 
   protected guardarProducto(): void {
-    const nombre = this.nombre().trim();
-    if (!nombre) {
+    const nombre = this.nombre();
+    if (!nombre.trim()) {
       return;
     }
     this.demo.guardarProducto({

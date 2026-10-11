@@ -1,36 +1,27 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { InsumosService } from '../../../inventario/insumos.service';
 import {
   asignacionesIniciales,
   cartaInicial,
-  comprasIniciales,
   horariosBaseIniciales,
-  insumosIniciales,
   mesasIniciales,
-  movimientosIniciales,
   pedidosIniciales,
   pendientesCierreIniciales,
   personalInicial,
   productosIniciales,
-  proveedoresIniciales,
   recetasIniciales,
   turnoInicial,
   zonasIniciales,
 } from './supervision.mocks';
 import {
-  CompraDemo,
   DisponibilidadCarta,
-  estadoCompraDe,
-  estadoStockDe,
-  LineaCompra,
   MesaDemo,
-  pendienteDe,
   ProductoDemo,
-  ProveedorDemo,
   RecetaDemo,
   RolTemporal,
-  UnidadInsumo,
   ZonaDemo,
 } from './supervision.models';
+import { normalizarTextoDescriptivo } from '../../../shared/texto/texto-descriptivo';
 
 /**
  * Estado visual del panel Supervisor. Solo vive en memoria del navegador
@@ -38,6 +29,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class SupervisionDemo {
+  private readonly insumosApi = inject(InsumosService);
+
   readonly horarios = signal(horariosBaseIniciales());
   readonly turno = signal(turnoInicial());
   readonly pendientesCierre = signal(pendientesCierreIniciales());
@@ -46,10 +39,6 @@ export class SupervisionDemo {
   readonly zonas = signal(zonasIniciales());
   readonly mesas = signal(mesasIniciales());
   readonly pedidos = signal(pedidosIniciales());
-  readonly proveedores = signal(proveedoresIniciales());
-  readonly compras = signal(comprasIniciales());
-  readonly insumos = signal(insumosIniciales());
-  readonly movimientos = signal(movimientosIniciales());
   readonly recetas = signal(recetasIniciales());
   readonly productos = signal(productosIniciales());
   readonly carta = signal(cartaInicial());
@@ -60,15 +49,8 @@ export class SupervisionDemo {
   readonly pedidosCocina = computed(() => this.pedidos().filter((p) => p.estado === 'Pendiente cocina').length);
   readonly pedidosPreparados = computed(() => this.pedidos().filter((p) => p.estado === 'Preparado').length);
   readonly atencionesAbiertas = computed(() => this.mesas().filter((m) => m.atencion).length);
-  readonly comprasPorRecibir = computed(
-    () => this.compras().filter((c) => estadoCompraDe(c) !== 'Recibida').length,
-  );
   readonly productosAgotados = computed(() => this.carta().filter((c) => c.disponibilidad === 'Agotado').length);
-  readonly stockBajo = computed(
-    () => this.insumos().filter((i) => estadoStockDe(i.stock, i.minimo) !== 'NORMAL').length,
-  );
   readonly personalActivo = computed(() => this.personal().length);
-  readonly proveedoresActivos = computed(() => this.proveedores().filter((p) => p.activo));
 
   iniciarTurnoAnticipado(): void {
     const actual = this.turno();
@@ -146,17 +128,21 @@ export class SupervisionDemo {
   }
 
   guardarZona(entrada: { id?: number; nombre: string; activa: boolean }): void {
+    const nombre = normalizarTextoDescriptivo(entrada.nombre);
+    if (!nombre) {
+      return;
+    }
     if (entrada.id) {
       this.zonas.update((lista) =>
-        lista.map((z) => (z.id === entrada.id ? { ...z, nombre: entrada.nombre, activa: entrada.activa } : z)),
+        lista.map((z) => (z.id === entrada.id ? { ...z, nombre, activa: entrada.activa } : z)),
       );
       this.mesas.update((lista) =>
-        lista.map((m) => (m.zonaId === entrada.id ? { ...m, zona: entrada.nombre } : m)),
+        lista.map((m) => (m.zonaId === entrada.id ? { ...m, zona: nombre } : m)),
       );
       return;
     }
     const id = Math.max(0, ...this.zonas().map((z) => z.id)) + 1;
-    this.zonas.update((lista) => [...lista, { id, nombre: entrada.nombre, activa: entrada.activa }]);
+    this.zonas.update((lista) => [...lista, { id, nombre, activa: entrada.activa }]);
   }
 
   alternarZona(zona: ZonaDemo): void {
@@ -168,10 +154,14 @@ export class SupervisionDemo {
     if (!zona) {
       return;
     }
+    const nombre = normalizarTextoDescriptivo(entrada.nombre);
+    if (!nombre) {
+      return;
+    }
     if (entrada.id) {
       this.mesas.update((lista) =>
         lista.map((m) =>
-          m.id === entrada.id ? { ...m, nombre: entrada.nombre, zonaId: zona.id, zona: zona.nombre, activa: entrada.activa } : m,
+          m.id === entrada.id ? { ...m, nombre, zonaId: zona.id, zona: zona.nombre, activa: entrada.activa } : m,
         ),
       );
       return;
@@ -179,7 +169,7 @@ export class SupervisionDemo {
     const id = Math.max(0, ...this.mesas().map((m) => m.id)) + 1;
     const nueva: MesaDemo = {
       id,
-      nombre: entrada.nombre,
+      nombre,
       zonaId: zona.id,
       zona: zona.nombre,
       activa: entrada.activa,
@@ -195,172 +185,31 @@ export class SupervisionDemo {
     this.mesas.update((lista) => lista.map((m) => (m.id === mesa.id ? { ...m, activa: !m.activa } : m)));
   }
 
-  guardarInsumo(entrada: {
-    id?: number;
-    nombre: string;
-    unidad: UnidadInsumo;
-    stock: number;
-    minimo: number;
-  }): string | null {
-    const nombre = entrada.nombre.trim();
-    if (!nombre) {
-      return 'Ingresa el nombre del insumo.';
-    }
-    const stock = Math.max(0, entrada.stock);
-    const minimo = Math.max(0, entrada.minimo);
-    if (entrada.id) {
-      this.insumos.update((lista) =>
-        lista.map((i) =>
-          i.id === entrada.id ? { ...i, nombre, unidad: entrada.unidad, stock, minimo } : i,
-        ),
-      );
-      return null;
-    }
-    const id = Math.max(0, ...this.insumos().map((i) => i.id)) + 1;
-    this.insumos.update((lista) => [...lista, { id, nombre, unidad: entrada.unidad, stock, minimo }]);
-    return null;
-  }
-
-  guardarProveedor(entrada: Omit<ProveedorDemo, 'id'> & { id?: number }): string | null {
-    const nombre = entrada.nombre.trim();
-    if (!nombre) {
-      return 'Ingresa el nombre o razón social.';
-    }
-    const documento = entrada.documento.trim();
-    if (!documento) {
-      return 'Ingresa el número de documento.';
-    }
-    if (entrada.id) {
-      this.proveedores.update((lista) =>
-        lista.map((p) => (p.id === entrada.id ? { ...p, ...entrada, id: entrada.id, nombre, documento } : p)),
-      );
-      return null;
-    }
-    const id = Math.max(0, ...this.proveedores().map((p) => p.id)) + 1;
-    this.proveedores.update((lista) => [...lista, { ...entrada, id, nombre, documento }]);
-    return null;
-  }
-
-  alternarProveedor(fila: ProveedorDemo): void {
-    this.proveedores.update((lista) => lista.map((p) => (p.id === fila.id ? { ...p, activo: !p.activo } : p)));
-  }
-
-  guardarCompra(entrada: {
-    id?: string;
-    proveedorId: number;
-    fecha: string;
-    lineas: Omit<LineaCompra, 'id' | 'recibido' | 'insumo' | 'unidad'>[];
-  }): string | null {
-    const proveedor = this.proveedores().find((p) => p.id === entrada.proveedorId && p.activo);
-    if (!proveedor) {
-      return 'Selecciona un proveedor activo.';
-    }
-    if (entrada.lineas.length === 0) {
-      return 'Agrega al menos un insumo.';
-    }
-    const lineas: LineaCompra[] = [];
-    for (const [indice, linea] of entrada.lineas.entries()) {
-      const insumo = this.insumos().find((i) => i.id === linea.insumoId);
-      if (!insumo) {
-        return 'Selecciona un insumo registrado.';
-      }
-      if (linea.cantidad <= 0) {
-        return 'La cantidad debe ser mayor a 0.';
-      }
-      if (linea.precioUnitario < 0) {
-        return 'El precio no puede ser negativo.';
-      }
-      if (lineas.some((l) => l.insumoId === insumo.id)) {
-        return 'No repitas el mismo insumo en la compra.';
-      }
-      lineas.push({
-        id: indice + 1,
-        insumoId: insumo.id,
-        insumo: insumo.nombre,
-        unidad: insumo.unidad,
-        cantidad: linea.cantidad,
-        precioUnitario: linea.precioUnitario,
-        recibido: 0,
-      });
-    }
-    if (entrada.id) {
-      const actual = this.compras().find((c) => c.id === entrada.id);
-      if (!actual) {
-        return 'No se encontró la compra.';
-      }
-      if (estadoCompraDe(actual) !== 'Pendiente') {
-        return 'Solo se puede editar una compra pendiente.';
-      }
-      this.compras.update((lista) =>
-        lista.map((c) =>
-          c.id === entrada.id
-            ? { ...c, proveedorId: proveedor.id, proveedor: proveedor.nombre, fecha: entrada.fecha, lineas }
-            : c,
-        ),
-      );
-      return null;
-    }
-    const siguiente = this.compras().reduce((max, c) => {
-      const n = Number(c.id.replace('COMP-', ''));
-      return Number.isFinite(n) ? Math.max(max, n) : max;
-    }, 0) + 1;
-    const codigo = `COMP-${String(siguiente).padStart(3, '0')}`;
-    this.compras.update((lista) => [
-      {
-        id: codigo,
-        proveedorId: proveedor.id,
-        proveedor: proveedor.nombre,
-        fecha: entrada.fecha,
-        lineas,
-      },
-      ...lista,
-    ]);
-    return null;
-  }
-
-  recibirLinea(compraId: string, lineaId: number, cantidad: number): string | null {
-    const compra = this.compras().find((c) => c.id === compraId);
-    if (!compra) {
-      return 'No se encontró la compra.';
-    }
-    const linea = compra.lineas.find((l) => l.id === lineaId);
-    if (!linea) {
-      return 'No se encontró el insumo de la compra.';
-    }
-    const pendiente = pendienteDe(linea);
-    if (cantidad <= 0) {
-      return 'Ingresa una cantidad mayor a 0.';
-    }
-    if (cantidad > pendiente) {
-      return `No puedes recibir más de ${pendiente} pendientes.`;
-    }
-    this.compras.update((lista) =>
-      lista.map((c) =>
-        c.id !== compraId
-          ? c
-          : {
-              ...c,
-              lineas: c.lineas.map((l) =>
-                l.id === lineaId ? { ...l, recibido: Number((l.recibido + cantidad).toFixed(3)) } : l,
-              ),
-            },
-      ),
+  quitarInsumoDeRecetas(id: number): void {
+    this.recetas.update((lista) =>
+      lista.map((r) => ({
+        ...r,
+        insumos: r.insumos.filter((l) => l.insumoId !== id),
+      })),
     );
-    this.insumos.update((lista) =>
-      lista.map((i) =>
-        i.id === linea.insumoId ? { ...i, stock: Number((i.stock + cantidad).toFixed(3)) } : i,
-      ),
-    );
-    return null;
   }
 
   guardarProducto(entrada: Omit<ProductoDemo, 'id'> & { id?: number }): void {
+    const nombre = normalizarTextoDescriptivo(entrada.nombre);
+    if (!nombre) {
+      return;
+    }
     if (entrada.id) {
-      this.productos.update((lista) => lista.map((p) => (p.id === entrada.id ? { ...p, ...entrada, id: entrada.id } : p)));
+      this.productos.update((lista) =>
+        lista.map((p) => (p.id === entrada.id ? { ...p, ...entrada, id: entrada.id, nombre } : p)),
+      );
+      this.carta.update((lista) =>
+        lista.map((c) => (c.productoId === entrada.id ? { ...c, producto: nombre } : c)),
+      );
       return;
     }
     const id = Math.max(0, ...this.productos().map((p) => p.id)) + 1;
-    this.productos.update((lista) => [...lista, { ...entrada, id }]);
+    this.productos.update((lista) => [...lista, { ...entrada, id, nombre }]);
   }
 
   marcarCarta(id: number, disponibilidad: DisponibilidadCarta): void {
@@ -369,5 +218,55 @@ export class SupervisionDemo {
 
   recetaDe(id: number): RecetaDemo | undefined {
     return this.recetas().find((r) => r.id === id);
+  }
+
+  guardarReceta(entrada: {
+    id?: number;
+    nombre: string;
+    lineas: { insumoId: number; cantidad: number }[];
+  }): string | null {
+    const nombre = normalizarTextoDescriptivo(entrada.nombre);
+    if (!nombre) {
+      return 'Ingresa el nombre de la receta.';
+    }
+    if (entrada.lineas.length === 0) {
+      return 'Agrega al menos un insumo.';
+    }
+    const insumos: RecetaDemo['insumos'] = [];
+    for (const linea of entrada.lineas) {
+      const insumo = this.insumosApi.lista().find((i) => i.id === linea.insumoId);
+      if (!insumo) {
+        return 'Selecciona un insumo registrado.';
+      }
+      if (linea.cantidad <= 0) {
+        return 'La cantidad debe ser mayor a 0.';
+      }
+      if (insumos.some((l) => l.insumoId === insumo.id)) {
+        return 'No repitas el mismo insumo en la receta.';
+      }
+      insumos.push({
+        insumoId: insumo.id,
+        insumo: insumo.nombre,
+        unidad: insumo.unidad,
+        cantidad: Number(linea.cantidad.toFixed(3)),
+      });
+    }
+    if (entrada.id) {
+      const actual = this.recetas().find((r) => r.id === entrada.id);
+      if (!actual) {
+        return 'No se encontró la receta.';
+      }
+      this.recetas.update((lista) =>
+        lista.map((r) => (r.id === entrada.id ? { ...r, nombre, insumos } : r)),
+      );
+      return null;
+    }
+    const id = Math.max(0, ...this.recetas().map((r) => r.id)) + 1;
+    this.recetas.update((lista) => [{ id, nombre, insumos }, ...lista]);
+    return null;
+  }
+
+  eliminarReceta(id: number): void {
+    this.recetas.update((lista) => lista.filter((r) => r.id !== id));
   }
 }

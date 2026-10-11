@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cargo, Empleado, EmpleadoRequest } from '../../../personal/personal.models';
+import { normalizarTextoDescriptivo } from '../../../shared/texto/texto-descriptivo';
 
 @Component({
   selector: 'app-empleado-formulario',
@@ -149,8 +150,8 @@ export class EmpleadoFormulario {
     const valor = this.formulario.getRawValue();
     const dni = valor.dni.trim();
     this.guardar.emit({
-      nombres: valor.nombres.trim(),
-      apellidos: valor.apellidos.trim(),
+      nombres: normalizarTextoDescriptivo(valor.nombres),
+      apellidos: normalizarTextoDescriptivo(valor.apellidos),
       dni: dni.length === 0 ? null : dni,
       telefono: valor.telefono.trim() || null,
       correoPersonal: valor.correoPersonal.trim() || null,

@@ -178,47 +178,11 @@ export function insumosIniciales(): InsumoDemo[] {
 }
 
 export function movimientosIniciales(): MovimientoDemo[] {
-  return [
-    { id: 1, fecha: '06/10/2026 17:40', insumo: 'Pollo', tipo: 'Entrada', cantidad: '25 kg', motivo: 'Recepción C-1040', responsable: 'Rosa Huamán' },
-    { id: 2, fecha: '07/10/2026 12:10', insumo: 'Papa', tipo: 'Salida', cantidad: '6 kg', motivo: 'Consumo receta', responsable: 'Luis Paredes' },
-    { id: 3, fecha: '07/10/2026 13:02', insumo: 'Ensalada', tipo: 'Salida', cantidad: '10 porc.', motivo: 'Consumo receta', responsable: 'Luis Paredes' },
-    { id: 4, fecha: '07/10/2026 16:20', insumo: 'Gaseosa 500 ml', tipo: 'Salida', cantidad: '8 unid.', motivo: 'Venta salón', responsable: 'Sistema' },
-  ];
+  return [];
 }
 
 export function recetasIniciales(): RecetaDemo[] {
-  return [
-    {
-      id: 1,
-      producto: 'Pollo a la brasa',
-      activa: true,
-      insumos: [
-        { insumo: 'Pollo', cantidad: '1/4 und' },
-        { insumo: 'Papa', cantidad: '0.25 kg' },
-        { insumo: 'Ensalada', cantidad: '1 porción' },
-      ],
-    },
-    {
-      id: 2,
-      producto: '1/2 Pollo a la brasa',
-      activa: true,
-      insumos: [
-        { insumo: 'Pollo', cantidad: '1/2 und' },
-        { insumo: 'Papa', cantidad: '0.40 kg' },
-        { insumo: 'Ensalada', cantidad: '1 porción' },
-      ],
-    },
-    {
-      id: 3,
-      producto: 'Lomo saltado',
-      activa: true,
-      insumos: [
-        { insumo: 'Papa', cantidad: '0.20 kg' },
-        { insumo: 'Arroz', cantidad: '0.15 kg' },
-        { insumo: 'Aceite', cantidad: '0.03 L' },
-      ],
-    },
-  ];
+  return [];
 }
 
 export function productosIniciales(): ProductoDemo[] {

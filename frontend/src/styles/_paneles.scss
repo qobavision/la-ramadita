@@ -88,6 +88,44 @@
   list-style: none;
 }
 
+.lr-receta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+
+  header strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  header small {
+    color: var(--lr-gris);
+  }
+}
+
+.lr-receta__insumos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  strong {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
 .lr-columna__item {
   padding: 10px 12px;
   border: 1px solid var(--lr-linea);

@@ -9,29 +9,58 @@
       Agregar insumo
     </button>
   }
+  @if (vista() === 'recetas') {
+    <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirReceta()">
+      <app-icono nombre="mas" [tamano]="16" />
+      Agregar receta
+    </button>
+  }
 </app-encabezado-pagina>
 
 <div class="lr-herramientas">
-  <app-segmento etiqueta="Sección" [opciones]="vistas" [(valor)]="vista" />
+  <app-segmento etiqueta="Sección" [opciones]="vistas" [valor]="vista()" (valorChange)="cambiarVista($event!)" />
   @if (vista() === 'insumos') {
     <label class="lr-buscador">
       <app-icono nombre="buscar" [tamano]="16" />
       <input type="search" placeholder="Buscar insumo" [value]="busqueda()" (input)="actualizarBusqueda($event)" />
     </label>
+    <app-segmento
+      etiqueta="Estado"
+      [opciones]="filtrosEstado"
+      [valor]="filtroEstado()"
+      (valorChange)="cambiarFiltro($event!)"
+    />
+  }
+  @if (vista() === 'recetas') {
+    <label class="lr-buscador">
+      <app-icono nombre="buscar" [tamano]="16" />
+      <input type="search" placeholder="Buscar receta" [value]="busquedaReceta()" (input)="actualizarBusquedaReceta($event)" />
+    </label>
   }
 </div>
 
 @if (vista() === 'insumos') {
+  @if (!dialogo() && error(); as texto) {
+    <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  }
   @if (filtrados().length === 0) {
     <app-tabla-listado
       [columnas]="columnasInsumos"
       [total]="0"
       vacioIcono="inventario"
-      [vacioTitulo]="vacioPorFiltro() ? 'Ningún insumo coincide con la búsqueda' : 'Todavía no hay insumos'"
+      [vacioTitulo]="
+        vacioPorFiltro()
+          ? 'Ningún insumo coincide con la búsqueda'
+          : vacioInactivos()
+            ? 'No hay insumos inactivos'
+            : 'Todavía no hay insumos'
+      "
       [vacioDescripcion]="
         vacioPorFiltro()
           ? 'Prueba con otro nombre o unidad.'
-          : 'Agrega el primer insumo. La unidad que elijas será la misma en compras, recepción y recetas.'
+          : vacioInactivos()
+            ? 'Los insumos desactivados aparecerán aquí para reactivarlos.'
+            : 'Agrega el primer insumo. La unidad que elijas será la misma en compras, recepción y recetas.'
       "
     />
   } @else {
@@ -43,12 +72,27 @@
             <td>{{ i.unidad }}</td>
             <td class="num">{{ formatoCantidad(i.stock) }}</td>
             <td>
-              <span class="lr-estado {{ claseStock(estadoDe(i.stock, i.minimo)) }}">{{ estadoDe(i.stock, i.minimo) }}</span>
+              @if (muestraStock(i)) {
+                <span class="lr-estado {{ claseStock(estadoDe(i)) }}">{{ etiquetaEstado(i) }}</span>
+              } @else {
+                <span>{{ etiquetaEstado(i) }}</span>
+              }
             </td>
             <td class="num lr-tabla__acciones">
-              <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
-                <app-icono nombre="editar" [tamano]="16" />
-              </button>
+              <div class="lr-acciones">
+                @if (muestraStock(i)) {
+                  <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
+                    <app-icono nombre="editar" [tamano]="16" />
+                  </button>
+                  <button type="button" class="lr-accion" title="Eliminar insumo" (click)="pedirEliminarInsumo(i)">
+                    <app-icono nombre="eliminar" [tamano]="16" />
+                  </button>
+                } @else {
+                  <button type="button" class="lr-accion" title="Reactivar insumo" (click)="reactivarInsumo(i)" [disabled]="enviando()">
+                    <app-icono nombre="reactivar" [tamano]="16" />
+                  </button>
+                }
+              </div>
             </td>
           </tr>
         }
@@ -62,12 +106,25 @@
               <strong>{{ i.nombre }}</strong>
               <small>{{ i.unidad }} · Stock {{ formatoCantidad(i.stock) }}</small>
             </div>
-            <span class="lr-estado {{ claseStock(estadoDe(i.stock, i.minimo)) }}">{{ estadoDe(i.stock, i.minimo) }}</span>
+            @if (muestraStock(i)) {
+              <span class="lr-estado {{ claseStock(estadoDe(i)) }}">{{ etiquetaEstado(i) }}</span>
+            } @else {
+              <span>{{ etiquetaEstado(i) }}</span>
+            }
           </header>
           <div class="lr-acciones">
-            <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
-              <app-icono nombre="editar" [tamano]="16" />
-            </button>
+            @if (muestraStock(i)) {
+              <button type="button" class="lr-accion" title="Editar insumo" (click)="abrirInsumo(i)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Eliminar insumo" (click)="pedirEliminarInsumo(i)">
+                <app-icono nombre="eliminar" [tamano]="16" />
+              </button>
+            } @else {
+              <button type="button" class="lr-accion" title="Reactivar insumo" (click)="reactivarInsumo(i)" [disabled]="enviando()">
+                <app-icono nombre="reactivar" [tamano]="16" />
+              </button>
+            }
           </div>
         </article>
       }
@@ -77,19 +134,25 @@
 
 @if (vista() === 'movimientos') {
   <div class="lr-tabla-marco--escritorio">
-    <app-tabla-listado [columnas]="columnasMov" [total]="movimientos().length">
+    <app-tabla-listado
+      [columnas]="columnasMov"
+      [total]="movimientos().length"
+      vacioIcono="inventario"
+      vacioTitulo="Aún no hay movimientos"
+      vacioDescripcion="Las recepciones de compra dejarán aquí el historial de entradas."
+    >
       @for (m of movimientos(); track m.id) {
         <tr filas>
           <td>{{ m.fecha }}</td>
           <td><strong>{{ m.insumo }}</strong></td>
           <td>
-            <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'Entrada'" [class.lr-estado--abierta]="m.tipo === 'Salida'">
+            <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'ENTRADA'" [class.lr-estado--abierta]="m.tipo === 'CONSUMO'" [class.lr-estado--alerta]="m.tipo === 'AJUSTE'">
               {{ m.tipo }}
             </span>
           </td>
-          <td class="num">{{ m.cantidad }}</td>
-          <td>{{ m.motivo }}</td>
-          <td>{{ m.responsable }}</td>
+          <td class="num">{{ formatoCantidad(m.cantidad) }}</td>
+          <td class="num">{{ formatoCantidad(m.stockResultante) }}</td>
+          <td>{{ m.origen }}</td>
         </tr>
       }
     </app-tabla-listado>
@@ -102,13 +165,15 @@
             <strong>{{ m.insumo }}</strong>
             <small>{{ m.fecha }}</small>
           </div>
-          <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'Entrada'">{{ m.tipo }}</span>
+          <span class="lr-estado" [class.lr-estado--activo]="m.tipo === 'ENTRADA'">{{ m.tipo }}</span>
         </header>
         <dl>
           <dt>Cantidad</dt>
-          <dd>{{ m.cantidad }}</dd>
-          <dt>Motivo</dt>
-          <dd>{{ m.motivo }}</dd>
+          <dd>{{ formatoCantidad(m.cantidad) }}</dd>
+          <dt>Stock resultante</dt>
+          <dd>{{ formatoCantidad(m.stockResultante) }}</dd>
+          <dt>Origen</dt>
+          <dd>{{ m.origen }}</dd>
         </dl>
       </article>
     }
@@ -116,63 +181,59 @@
 }
 
 @if (vista() === 'recetas') {
-  <div class="lr-tabla-marco--escritorio">
-    <app-tabla-listado [columnas]="columnasRecetas" [total]="recetas().length">
-      @for (r of recetas(); track r.id) {
-        <tr filas>
-          <td><strong>{{ r.producto }}</strong></td>
-          <td class="num">{{ r.insumos.length }}</td>
-          <td>
-            <span class="lr-estado" [class.lr-estado--activo]="r.activa">{{ r.activa ? 'Activa' : 'Inactiva' }}</span>
-          </td>
-          <td class="num lr-tabla__acciones">
-            <button type="button" class="lr-accion" title="Ver receta" (click)="ver(r)">
-              <app-icono nombre="ver" [tamano]="16" />
+  <h2 class="lr-seccion">Recetas</h2>
+  @if (recetasFiltradas().length === 0) {
+    <section class="lr-tarjeta">
+      <app-estado-vacio
+        icono="carta"
+        [titulo]="vacioRecetaPorFiltro() ? 'Ninguna receta coincide con la búsqueda' : 'Todavía no hay recetas'"
+        [descripcion]="
+          vacioRecetaPorFiltro()
+            ? 'Prueba con otro nombre o insumo.'
+            : 'Arma la receta con los insumos ya registrados. La unidad de cada ítem sale del inventario.'
+        "
+      />
+    </section>
+  } @else {
+    <div class="lr-rejilla lr-rejilla--ancha">
+      @for (r of recetasFiltradas(); track r.id) {
+        <article class="lr-tarjeta lr-receta">
+          <header>
+            <div>
+              <strong>{{ r.nombre }}</strong>
+              <small>{{ r.insumos.length }} {{ r.insumos.length === 1 ? 'insumo' : 'insumos' }}</small>
+            </div>
+          </header>
+          <ul class="lr-receta__insumos">
+            @for (i of insumosDeCard(r); track i.insumoId) {
+              <li>
+                <span>{{ i.insumo }}</span>
+                <strong>{{ formatoCantidad(i.cantidad) }} {{ unidadCorta(i.unidad) }}</strong>
+              </li>
+            }
+          </ul>
+          @if (extrasDe(r) > 0) {
+            <button type="button" class="lr-enlace" (click)="alternarIngredientes(r.id)">
+              +{{ extrasDe(r) }} más · Ver ingredientes
             </button>
-          </td>
-        </tr>
-      }
-    </app-tabla-listado>
-  </div>
-  <div class="lr-tarjetas-listado">
-    @for (r of recetas(); track r.id) {
-      <article class="lr-tarjeta lr-tarjeta-fila">
-        <header>
-          <div>
-            <strong>{{ r.producto }}</strong>
-            <small>{{ r.insumos.length }} insumos</small>
+          } @else if (r.insumos.length > 3 && recetaAbierta() === r.id) {
+            <button type="button" class="lr-enlace" (click)="alternarIngredientes(r.id)">Ocultar ingredientes</button>
+          }
+          <div class="lr-acciones">
+            <button type="button" class="lr-accion" title="Editar receta" (click)="abrirReceta(r)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+            <button type="button" class="lr-accion" title="Eliminar receta" (click)="pedirEliminar(r)">
+              <app-icono nombre="eliminar" [tamano]="16" />
+            </button>
           </div>
-          <button type="button" class="lr-accion" title="Ver receta" (click)="ver(r)">
-            <app-icono nombre="ver" [tamano]="16" />
-          </button>
-        </header>
-      </article>
-    }
-  </div>
-}
-
-@if (recetaSel(); as r) {
-  <app-dialogo
-    eyebrow="Receta"
-    [titulo]="r.producto"
-    descripcion="Relación producto → insumos. El consumo automático todavía no está activo."
-    (cerrar)="recetaSel.set(null)"
-  >
-    <app-tabla-listado [columnas]="[{ titulo: 'Insumo' }, { titulo: 'Cantidad', numerica: true }]" [total]="r.insumos.length">
-      @for (i of r.insumos; track i.insumo) {
-        <tr filas>
-          <td>{{ i.insumo }}</td>
-          <td class="num">{{ i.cantidad }}</td>
-        </tr>
+        </article>
       }
-    </app-tabla-listado>
-    <div class="lr-formulario__pie mt-3">
-      <button type="button" class="btn btn-outline-secondary" (click)="recetaSel.set(null)">Cerrar</button>
     </div>
-  </app-dialogo>
+  }
 }
 
-@if (dialogo()) {
+@if (dialogo() === 'insumo') {
   <app-dialogo
     eyebrow="Inventario"
     [titulo]="editando() ? 'Editar insumo' : 'Agregar insumo'"
@@ -181,7 +242,7 @@
         ? 'El stock real más adelante se actualizará sobre todo con la recepción.'
         : 'La unidad elegida será la unidad base de este insumo.'
     "
-    (cerrar)="dialogo.set(false)"
+    (cerrar)="cerrar()"
   >
     @if (error(); as texto) {
       <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
@@ -205,15 +266,105 @@
       </div>
       <div class="lr-campo--completo">
         <label class="form-label" for="ins-stk">{{ editando() ? 'Stock actual' : 'Stock inicial' }}</label>
-        <input id="ins-stk" class="form-control" type="number" min="0" step="any" [ngModel]="stock()" (ngModelChange)="stock.set($event)" />
+        <input id="ins-stk" class="form-control" type="number" min="0" step="any" [ngModel]="stock()" (ngModelChange)="stock.set($event)" [disabled]="!!editando()" />
         @if (editando()) {
-          <div class="form-text">En esta demo puedes ajustarlo para probar. Después subirá con la recepción.</div>
+          <div class="form-text">El stock se actualiza con las recepciones. El mínimo sí se puede editar.</div>
         }
       </div>
       <div class="lr-formulario__pie">
-        <button type="button" class="btn btn-outline-secondary" (click)="dialogo.set(false)">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="guardarInsumo()">Guardar</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarInsumo()" [disabled]="enviando()">Guardar</button>
       </div>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'receta') {
+  <app-dialogo
+    ancho="ancho"
+    eyebrow="Recetas"
+    [titulo]="recetaEditando() ? 'Editar receta' : 'Agregar receta'"
+    descripcion="La unidad de cada ítem es la unidad base del insumo. No se convierten kilos ni gramos."
+    (cerrar)="cerrar()"
+  >
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    @if (insumosActivos().length === 0) {
+      <p class="lr-nota mb-3">
+        <app-icono nombre="alerta" [tamano]="16" />
+        <span>No hay insumos disponibles. Registra primero los insumos del inventario.</span>
+      </p>
+    }
+    <div class="lr-formulario">
+      <div class="lr-campo--completo">
+        <label class="form-label" for="rec-nom">Nombre de receta</label>
+        <input id="rec-nom" class="form-control" [ngModel]="recetaNombre()" (ngModelChange)="recetaNombre.set($event)" />
+      </div>
+    </div>
+    <h2 class="lr-seccion">Insumos de la receta</h2>
+    @for (l of lineasReceta(); track l.clave) {
+      <div class="lr-formulario mb-2">
+        <div>
+          <label class="form-label">Insumo</label>
+          <select class="form-select" [ngModel]="l.insumoId" (ngModelChange)="cambiarLineaReceta(l.clave, 'insumoId', $event)">
+            <option [ngValue]="0">Selecciona</option>
+            @for (i of insumosActivos(); track i.id) {
+              <option [ngValue]="i.id">{{ i.nombre }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Cantidad</label>
+          <input
+            class="form-control"
+            type="number"
+            min="0"
+            step="any"
+            [ngModel]="l.cantidad"
+            (ngModelChange)="cambiarLineaReceta(l.clave, 'cantidad', $event)"
+          />
+        </div>
+        <div>
+          <label class="form-label">Unidad</label>
+          <input class="form-control" [value]="insumoDe(l.insumoId)?.unidad ?? '—'" disabled />
+        </div>
+        <div class="d-flex align-items-end">
+          <button type="button" class="lr-accion" title="Quitar insumo" (click)="quitarLineaReceta(l.clave)">
+            <app-icono nombre="cerrar" [tamano]="16" />
+          </button>
+        </div>
+      </div>
+    }
+    <button type="button" class="btn btn-outline-secondary mb-3" (click)="agregarLineaReceta()">+ Agregar insumo</button>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="guardarReceta()" [disabled]="insumosActivos().length === 0">Guardar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar-insumo' && insumoBorrar(); as i) {
+  <app-dialogo eyebrow="Inventario" titulo="Eliminar insumo" (cerrar)="cerrar()">
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">¿Deseas eliminar este insumo?</p>
+    <p class="mb-3"><strong>{{ i.nombre }}</strong></p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminarInsumo()" [disabled]="enviando()">Eliminar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar-receta' && recetaBorrar(); as r) {
+  <app-dialogo eyebrow="Recetas" titulo="Eliminar receta" (cerrar)="cerrar()">
+    <p class="mb-3">¿Deseas eliminar esta receta?</p>
+    <p class="mb-3"><strong>{{ r.nombre }}</strong> saldrá del listado local. En esta demo no se guarda en la base de datos.</p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminar()">Eliminar</button>
     </div>
   </app-dialogo>
 }

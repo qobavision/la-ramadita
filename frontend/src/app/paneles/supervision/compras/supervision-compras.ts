@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { mensajeDeError } from '../../../core/errores/api-error';
+import { ComprasService } from '../../../inventario/compras.service';
+import { InsumosService } from '../../../inventario/insumos.service';
+import { MovimientosService } from '../../../inventario/movimientos.service';
+import { ProveedoresService } from '../../../inventario/proveedores.service';
+import { LONGITUD_CELULAR, longitudDocumento, recortarDigitos } from '../../../shared/texto/documento-peru';
 import { Dialogo } from '../../../shared/ui/dialogo/dialogo';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { OpcionSegmento, Segmento } from '../../../shared/ui/segmento/segmento';
 import { ColumnaTabla, TablaListado } from '../../../shared/ui/tabla-listado/tabla-listado';
-import { SupervisionDemo } from '../datos/supervision.demo';
 import {
   CompraDemo,
   LineaCompra,
@@ -33,6 +38,12 @@ interface LineaFormulario {
   precio: number | null;
 }
 
+interface LineaRecepcionForm {
+  lineaId: number;
+  cantidadAhora: number | null;
+  completo: boolean;
+}
+
 @Component({
   selector: 'app-supervision-compras',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,15 +51,18 @@ interface LineaFormulario {
   templateUrl: './supervision-compras.html',
 })
 export class SupervisionCompras {
-  private readonly demo = inject(SupervisionDemo);
+  private readonly comprasApi = inject(ComprasService);
+  private readonly proveedoresApi = inject(ProveedoresService);
+  private readonly insumosApi = inject(InsumosService);
+  private readonly movimientosApi = inject(MovimientosService);
   private siguienteClave = 1;
 
   protected readonly vista = signal<VistaCompras>('compras');
   protected readonly filtroRecepcion = signal<FiltroRecepcion>('pendientes');
-  protected readonly compras = this.demo.compras;
-  protected readonly proveedores = this.demo.proveedores;
-  protected readonly proveedoresActivos = this.demo.proveedoresActivos;
-  protected readonly insumos = this.demo.insumos;
+  protected readonly compras = this.comprasApi.lista;
+  protected readonly proveedores = this.proveedoresApi.lista;
+  protected readonly proveedoresActivos = this.proveedoresApi.activos;
+  protected readonly insumos = this.insumosApi.lista;
   protected readonly claseCompra = claseEstadoCompra;
   protected readonly estadoDe = estadoCompraDe;
   protected readonly estadoItem = estadoItemCompraDe;
@@ -58,6 +72,7 @@ export class SupervisionCompras {
   protected readonly cant = formatoCantidad;
   protected readonly unidadDe = abreviarUnidad;
   protected readonly pendienteDe = pendienteDe;
+  protected readonly enviando = signal(false);
 
   protected readonly vistas: readonly OpcionSegmento<VistaCompras>[] = [
     { valor: 'compras', etiqueta: 'Compras' },
@@ -76,12 +91,12 @@ export class SupervisionCompras {
     this.filtroRecepcion() === 'recibidas' ? this.recibidas() : this.pendientes(),
   );
 
-  protected readonly dialogo = signal<'compra' | 'detalle' | 'proveedor' | 'recepcion' | 'recibir' | null>(null);
-  protected readonly compraId = signal<string | null>(null);
-  protected readonly lineaId = signal<number | null>(null);
+  protected readonly dialogo = signal<'compra' | 'detalle' | 'proveedor' | 'recepcion' | 'eliminar-compra' | null>(null);
+  protected readonly compraId = signal<number | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly compraSel = computed(() => this.compras().find((c) => c.id === this.compraId()) ?? null);
-  protected readonly lineaSel = computed(() => this.compraSel()?.lineas.find((l) => l.id === this.lineaId()) ?? null);
+  protected readonly lineasRecepcion = signal<LineaRecepcionForm[]>([]);
+  protected readonly compraBorrar = signal<CompraDemo | null>(null);
 
   protected readonly proveedorSel = signal<ProveedorDemo | null>(null);
   protected readonly proveedorNombre = signal('');
@@ -94,11 +109,19 @@ export class SupervisionCompras {
   protected readonly compraProveedorId = signal(0);
   protected readonly compraFecha = signal(fechaHoyLocal());
   protected readonly lineasForm = signal<LineaFormulario[]>([]);
-  protected readonly cantidadAhora = signal<number | null>(null);
 
   protected readonly totalForm = computed(() =>
     this.lineasForm().reduce((s, l) => s + Number(l.cantidad ?? 0) * Number(l.precio ?? 0), 0),
   );
+
+  protected readonly proveedoresParaCompra = computed(() => {
+    const activos = this.proveedoresActivos();
+    const actual = this.proveedores().find((p) => p.id === this.compraProveedorId());
+    if (actual && !actual.activo && !activos.some((p) => p.id === actual.id)) {
+      return [actual, ...activos];
+    }
+    return activos;
+  });
 
   protected readonly columnasCompras: readonly ColumnaTabla[] = [
     { titulo: 'Código' },
@@ -121,18 +144,53 @@ export class SupervisionCompras {
   protected readonly columnasProv: readonly ColumnaTabla[] = [
     { titulo: 'Nombre / Razón social' },
     { titulo: 'Documento' },
-    { titulo: 'Teléfono' },
+    { titulo: 'Celular' },
     { titulo: 'Contacto' },
     { titulo: 'Estado' },
     { titulo: 'Acciones', numerica: true },
   ];
 
+  constructor() {
+    this.comprasApi.cargar().subscribe({ error: () => undefined });
+    this.proveedoresApi.cargar().subscribe({ error: () => undefined });
+    this.insumosApi.cargar().subscribe({ error: () => undefined });
+  }
+
+  protected sinRecepcion(compra: CompraDemo): boolean {
+    return compra.lineas.every((l) => l.recibido <= 0);
+  }
+
   protected puedeEditar(compra: CompraDemo): boolean {
-    return estadoCompraDe(compra) === 'Pendiente';
+    return estadoCompraDe(compra) === 'Pendiente' && this.sinRecepcion(compra);
+  }
+
+  protected puedeEliminar(compra: CompraDemo): boolean {
+    return this.puedeEditar(compra);
   }
 
   protected documentoDe(p: ProveedorDemo): string {
     return `${p.tipoDocumento} ${p.documento}`;
+  }
+
+  protected longitudDoc(): number {
+    return longitudDocumento(this.proveedorTipo());
+  }
+
+  protected ayudaDocumento(): string {
+    return this.proveedorTipo() === 'RUC' ? '11 dígitos' : '8 dígitos';
+  }
+
+  protected cambiarTipoDocumento(tipo: TipoDocumento): void {
+    this.proveedorTipo.set(tipo);
+    this.proveedorDoc.set(recortarDigitos(this.proveedorDoc(), longitudDocumento(tipo)));
+  }
+
+  protected cambiarDocumento(valor: string): void {
+    this.proveedorDoc.set(recortarDigitos(valor, this.longitudDoc()));
+  }
+
+  protected cambiarCelular(valor: string): void {
+    this.proveedorTel.set(recortarDigitos(valor, LONGITUD_CELULAR));
   }
 
   protected insumoDe(id: number) {
@@ -174,23 +232,30 @@ export class SupervisionCompras {
   }
 
   protected guardarCompra(): void {
-    const mensaje = this.demo.guardarCompra({
-      id: this.compraId() ?? undefined,
-      proveedorId: this.compraProveedorId(),
-      fecha: this.compraFecha(),
-      lineas: this.lineasForm()
-        .filter((l) => l.insumoId)
-        .map((l) => ({
-          insumoId: l.insumoId,
-          cantidad: Number(l.cantidad ?? 0),
-          precioUnitario: Number(l.precio ?? 0),
-        })),
-    });
-    if (mensaje) {
-      this.error.set(mensaje);
-      return;
-    }
-    this.cerrar();
+    this.enviando.set(true);
+    this.error.set(null);
+    this.comprasApi
+      .guardar({
+        id: this.compraId() ?? undefined,
+        proveedorId: this.compraProveedorId(),
+        lineas: this.lineasForm()
+          .filter((l) => l.insumoId)
+          .map((l) => ({
+            insumoId: l.insumoId,
+            cantidad: Number(l.cantidad ?? 0),
+            precioUnitario: Number(l.precio ?? 0),
+          })),
+      })
+      .subscribe({
+        next: () => {
+          this.enviando.set(false);
+          this.cerrar();
+        },
+        error: (error) => {
+          this.enviando.set(false);
+          this.error.set(mensajeDeError(error, 'No se pudo guardar la compra.'));
+        },
+      });
   }
 
   protected ver(compra: CompraDemo): void {
@@ -198,32 +263,100 @@ export class SupervisionCompras {
     this.dialogo.set('detalle');
   }
 
+  protected pedirEliminarCompra(compra: CompraDemo): void {
+    this.compraBorrar.set(compra);
+    this.error.set(null);
+    this.dialogo.set('eliminar-compra');
+  }
+
+  protected confirmarEliminarCompra(): void {
+    const compra = this.compraBorrar();
+    if (!compra) {
+      return;
+    }
+    this.enviando.set(true);
+    this.comprasApi.cancelar(compra.id).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.cerrar();
+      },
+      error: (error) => {
+        this.enviando.set(false);
+        this.error.set(mensajeDeError(error, 'No se pudo cancelar la compra.'));
+      },
+    });
+  }
+
   protected abrirRecepcion(compra: CompraDemo): void {
     this.compraId.set(compra.id);
     this.error.set(null);
+    this.lineasRecepcion.set(
+      compra.lineas.map((l) => {
+        const pendiente = pendienteDe(l);
+        return {
+          lineaId: l.id,
+          cantidadAhora: pendiente > 0 ? pendiente : 0,
+          completo: pendiente > 0,
+        };
+      }),
+    );
     this.dialogo.set('recepcion');
   }
 
-  protected abrirRecibir(linea: LineaCompra): void {
-    this.lineaId.set(linea.id);
-    this.cantidadAhora.set(pendienteDe(linea));
-    this.error.set(null);
-    this.dialogo.set('recibir');
+  protected formRecepcion(lineaId: number): LineaRecepcionForm | undefined {
+    return this.lineasRecepcion().find((l) => l.lineaId === lineaId);
+  }
+
+  protected marcarCompleto(linea: LineaCompra, marcado: boolean): void {
+    const pendiente = pendienteDe(linea);
+    this.lineasRecepcion.update((lista) =>
+      lista.map((l) =>
+        l.lineaId === linea.id
+          ? { ...l, completo: marcado, cantidadAhora: marcado ? pendiente : l.cantidadAhora }
+          : l,
+      ),
+    );
+  }
+
+  protected cambiarCantidadAhora(linea: LineaCompra, valor: number): void {
+    const pendiente = pendienteDe(linea);
+    const cantidad = Number(valor);
+    this.lineasRecepcion.update((lista) =>
+      lista.map((l) =>
+        l.lineaId === linea.id
+          ? { ...l, cantidadAhora: valor, completo: cantidad === pendiente && cantidad > 0 }
+          : l,
+      ),
+    );
   }
 
   protected confirmarRecepcion(): void {
     const compra = this.compraSel();
-    const linea = this.lineaSel();
-    if (!compra || !linea) {
+    if (!compra) {
       return;
     }
-    const mensaje = this.demo.recibirLinea(compra.id, linea.id, Number(this.cantidadAhora() ?? 0));
-    if (mensaje) {
-      this.error.set(mensaje);
-      return;
-    }
-    this.lineaId.set(null);
-    this.dialogo.set('recepcion');
+    this.enviando.set(true);
+    this.error.set(null);
+    this.comprasApi
+      .recibir(
+        compra.id,
+        this.lineasRecepcion().map((l) => ({
+          compraDetalleId: l.lineaId,
+          cantidad: Number(l.cantidadAhora ?? 0),
+        })),
+      )
+      .subscribe({
+        next: () => {
+          this.insumosApi.cargar().subscribe({ error: () => undefined });
+          this.movimientosApi.cargar().subscribe({ error: () => undefined });
+          this.enviando.set(false);
+          this.cerrar();
+        },
+        error: (error) => {
+          this.enviando.set(false);
+          this.error.set(mensajeDeError(error, 'No se pudo confirmar la recepción.'));
+        },
+      });
   }
 
   protected abrirProveedor(fila?: ProveedorDemo): void {
@@ -239,38 +372,44 @@ export class SupervisionCompras {
   }
 
   protected guardarProveedor(): void {
-    const mensaje = this.demo.guardarProveedor({
-      id: this.proveedorSel()?.id,
-      nombre: this.proveedorNombre(),
-      tipoDocumento: this.proveedorTipo(),
-      documento: this.proveedorDoc(),
-      telefono: this.proveedorTel().trim(),
-      contacto: this.proveedorContacto().trim(),
-      activo: this.proveedorActivo(),
-    });
-    if (mensaje) {
-      this.error.set(mensaje);
-      return;
-    }
-    this.cerrar();
+    this.enviando.set(true);
+    this.error.set(null);
+    this.proveedoresApi
+      .guardar({
+        id: this.proveedorSel()?.id,
+        nombre: this.proveedorNombre(),
+        tipoDocumento: this.proveedorTipo(),
+        documento: this.proveedorDoc(),
+        telefono: this.proveedorTel().trim(),
+        contacto: this.proveedorContacto().trim(),
+        activo: this.proveedorActivo(),
+      })
+      .subscribe({
+        next: () => {
+          this.enviando.set(false);
+          this.cerrar();
+        },
+        error: (error) => {
+          this.enviando.set(false);
+          this.error.set(mensajeDeError(error, 'No se pudo guardar el proveedor.'));
+        },
+      });
   }
 
   protected alternarProveedor(fila: ProveedorDemo): void {
-    this.demo.alternarProveedor(fila);
-  }
-
-  protected volverRecepcion(): void {
-    this.lineaId.set(null);
-    this.error.set(null);
-    this.dialogo.set('recepcion');
+    this.proveedoresApi.alternarActivo(fila.id).subscribe({
+      error: (error) => this.error.set(mensajeDeError(error, 'No se pudo cambiar el estado del proveedor.')),
+    });
   }
 
   protected cerrar(): void {
     this.dialogo.set(null);
     this.compraId.set(null);
-    this.lineaId.set(null);
+    this.compraBorrar.set(null);
+    this.lineasRecepcion.set([]);
     this.proveedorSel.set(null);
     this.error.set(null);
+    this.enviando.set(false);
   }
 
   private lineaVacia(): LineaFormulario {

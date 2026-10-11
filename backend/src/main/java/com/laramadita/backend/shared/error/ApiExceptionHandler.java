@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -34,6 +35,12 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(ReglaNegocioException.class)
 	ProblemDetail reglaNegocio(ReglaNegocioException e) {
 		return problema(HttpStatus.UNPROCESSABLE_ENTITY, "Regla de negocio no cumplida", e.getMessage());
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	ProblemDetail integridad(DataIntegrityViolationException e) {
+		return problema(HttpStatus.CONFLICT, "Conflicto",
+				"El registro viola una restricción de unicidad o integridad");
 	}
 
 	@ExceptionHandler(OperacionNoAutorizadaException.class)

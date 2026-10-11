@@ -225,14 +225,6 @@
   font-weight: 800;
   color: var(--lr-gris);
 
-  &::before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
   &--activo {
     background: #e4f2ea;
     color: var(--lr-verde);

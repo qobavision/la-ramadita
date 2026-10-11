@@ -11,7 +11,7 @@ export type EstadoItemCompra = 'Pendiente' | 'Parcial' | 'Recibido';
 export type EstadoStock = 'NORMAL' | 'STOCK BAJO' | 'AGOTADO';
 export type TipoDocumento = 'RUC' | 'DNI';
 export type UnidadInsumo = 'Unidad' | 'Kilogramo (kg)' | 'Gramo (g)' | 'Litro (L)' | 'Mililitro (ml)';
-export type TipoMovimiento = 'Entrada' | 'Salida';
+export type TipoMovimiento = 'ENTRADA' | 'CONSUMO' | 'AJUSTE';
 export type DisponibilidadCarta = 'Disponible' | 'Agotado';
 
 export const UNIDADES_INSUMO: readonly UnidadInsumo[] = [
@@ -113,10 +113,13 @@ export interface LineaCompra {
 }
 
 export interface CompraDemo {
-  id: string;
+  id: number;
+  codigo: string;
   proveedorId: number;
   proveedor: string;
   fecha: string;
+  estado: EstadoCompra;
+  total: number;
   lineas: LineaCompra[];
 }
 
@@ -126,6 +129,8 @@ export interface InsumoDemo {
   unidad: UnidadInsumo;
   stock: number;
   minimo: number;
+  estado?: EstadoStock;
+  activo?: boolean;
 }
 
 export interface MovimientoDemo {
@@ -133,20 +138,21 @@ export interface MovimientoDemo {
   fecha: string;
   insumo: string;
   tipo: TipoMovimiento;
-  cantidad: string;
-  motivo: string;
-  responsable: string;
+  cantidad: number;
+  stockResultante: number;
+  origen: string;
 }
 
 export interface RecetaInsumo {
+  insumoId: number;
   insumo: string;
-  cantidad: string;
+  unidad: UnidadInsumo;
+  cantidad: number;
 }
 
 export interface RecetaDemo {
   id: number;
-  producto: string;
-  activa: boolean;
+  nombre: string;
   insumos: RecetaInsumo[];
 }
 
@@ -178,12 +184,15 @@ export function claseEstadoTurno(estado: EstadoTurno): string {
   return 'lr-estado--inactivo';
 }
 
-export function estadoStockDe(stock: number, minimo: number): EstadoStock {
-  const actual = Math.max(0, stock);
+export function estadoStockDe(insumo: Pick<InsumoDemo, 'stock' | 'minimo' | 'estado'>): EstadoStock {
+  if (insumo.estado) {
+    return insumo.estado;
+  }
+  const actual = Math.max(0, insumo.stock);
   if (actual === 0) {
     return 'AGOTADO';
   }
-  if (actual <= minimo) {
+  if (actual <= insumo.minimo) {
     return 'STOCK BAJO';
   }
   return 'NORMAL';
@@ -210,6 +219,9 @@ export function estadoItemCompraDe(linea: LineaCompra): EstadoItemCompra {
 }
 
 export function estadoCompraDe(compra: CompraDemo): EstadoCompra {
+  if (compra.estado) {
+    return compra.estado;
+  }
   if (compra.lineas.length === 0 || compra.lineas.every((l) => l.recibido <= 0)) {
     return 'Pendiente';
   }
@@ -230,6 +242,9 @@ export function claseEstadoCompra(estado: EstadoCompra | EstadoItemCompra): stri
 }
 
 export function totalCompraDe(compra: CompraDemo): number {
+  if (typeof compra.total === 'number') {
+    return compra.total;
+  }
   return compra.lineas.reduce((suma, linea) => suma + linea.cantidad * linea.precioUnitario, 0);
 }
 
