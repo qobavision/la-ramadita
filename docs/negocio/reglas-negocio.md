@@ -236,6 +236,14 @@ El usuario autorizado debe poder modificar la disponibilidad de productos sin mo
 
 
 
+Los combos se arman en Inventario y se ofrecen en carta con un nombre pensado para el mesero, sin prefijo `Combo`.
+
+
+
+Un producto no debe repetirse en la misma sección de una carta. Si en consulta hay duplicado de producto y sección, prevalece el último.
+
+
+
 \---
 
 
@@ -436,7 +444,11 @@ La compra debe quedar inicialmente como:
 
 
 
-`Pendiente de recepción`
+`Pendiente`
+
+
+
+Cada línea se registra con `Importe` (total de la línea). El precio unitario se calcula internamente (`importe / cantidad`) para valorizar el stock; no se pide al usuario.
 
 
 
@@ -460,7 +472,9 @@ Después de confirmar la recepción:
 
 \- aumenta el inventario;
 
-\- la compra cambia a `Recibida`.
+\- se genera un movimiento `ENTRADA` con origen `Recepción COMP-xxx`;
+
+\- la compra cambia a `Recibida` o `Parcial` si aún falta mercadería.
 
 
 
@@ -499,6 +513,22 @@ Cuando corresponda, el consumo de insumos debe poder identificarse como pertenec
 
 
 Esto permite comparar cuánto consume cada unidad.
+
+
+
+El movimiento `CONSUMO` se registrará cuando exista el módulo de pedidos.
+
+
+
+\---
+
+
+
+\## RN-21A - Proveedor archivado
+
+
+
+Eliminar un proveedor es archivado: baja lógica, sin eliminación física. El registro sale del listado operativo y conserva historial.
 
 
 
@@ -814,7 +844,7 @@ El username es el identificador para iniciar sesión y es distinto del correo pe
 
 
 
-El cargo es la función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+El cargo es la función laboral del empleado. Cargos: Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo.
 
 
 
@@ -866,19 +896,23 @@ ADMINISTRADOR tiene control general del sistema y puede acceder a los paneles op
 
 
 
-\## RN-40 - Asignaciones temporales (previsto)
+\## RN-40 - Asignaciones temporales
 
 
 
-Se contemplan asignaciones operativas temporales dentro de un turno para los roles MESERO, COCINA y CAJA.
+Dentro de un turno `EN_CURSO`, ADMINISTRADOR o SUPERVISOR pueden asignar una función temporal a una persona del personal: MESERO, COCINA o CAJA.
 
 
 
-El SUPERVISOR podrá realizarlas cuando se implementen.
+Solo ADMINISTRADOR puede asignar SUPERVISOR como función temporal.
 
 
 
-Esta regla todavía no está implementada.
+SUPERVISOR no puede asignar SUPERVISOR ni gestionar (asignar o expulsar) a un ADMINISTRADOR.
+
+
+
+La función temporal no cambia el rol permanente. Otorga el panel operativo de esa función, además del panel del rol permanente. ADMINISTRADOR conserva todos los paneles.
 
 
 
@@ -919,6 +953,74 @@ Son estados independientes, con estas reglas:
 \- Un registro archivado no se reactiva desde Editar.
 
 \- Último acceso es la fecha y hora del último inicio de sesión exitoso del usuario. No se actualiza en intentos fallidos ni al consultar la sesión.
+
+
+
+\---
+
+
+
+\# 12.1 Turnos y horario de operación
+
+
+
+\## RN-42 - Apertura de turno
+
+
+
+El turno no se abre al primer inicio de sesión del día.
+
+
+
+Se abre automáticamente al llegar la hora de inicio de la unidad (zona `America/Lima`), o al arrancar el sistema si la ventana sigue vigente.
+
+
+
+El proceso programado no reabre un turno si ya existió uno ese día y esa unidad. Al arrancar el sistema sí puede abrirse el turno de la ventana actual aunque ese día ya se haya cerrado uno.
+
+
+
+Pollería solo se abre automáticamente si no hay otro turno `EN_CURSO`.
+
+
+
+La apertura automática no asigna supervisor: el responsable se muestra como `Apertura automática`.
+
+
+
+\## RN-43 - Cierre de turno
+
+
+
+ADMINISTRADOR o SUPERVISOR pueden finalizar el turno. El cierre registra quién lo cerró.
+
+
+
+\## RN-44 - Personal del turno
+
+
+
+El personal del turno son quienes inician sesión cuando el turno ya está `EN_CURSO`, o quien abre el turno de forma manual.
+
+
+
+Reingresar en el mismo turno no duplica la asistencia: se conserva la primera hora de ingreso.
+
+
+
+Expulsar quita a la persona del personal. Un nuevo inicio de sesión la vuelve a registrar si el turno sigue abierto.
+
+
+
+El responsable mostrado en Inicio y Turnos es quien abrió el turno, no quien consulta la pantalla.
+
+
+
+\## RN-45 - Login independiente del turno
+
+
+
+El inicio de sesión no se bloquea por no haber turno abierto. Si hay turno `EN_CURSO`, el ingreso se registra en la asistencia.
 
 
 

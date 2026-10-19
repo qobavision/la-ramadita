@@ -474,6 +474,10 @@ ADMINISTRADOR puede acceder a los paneles de los demás roles con su misma sesi�
 
 
 
+La función actual del turno (MESERO, COCINA, CAJA; SUPERVISOR solo si la asigna un ADMINISTRADOR) no cambia el rol permanente ni el JWT. `/auth/me` incluye `funcionActual` y esa función otorga el panel operativo correspondiente, además del panel del rol permanente.
+
+
+
 Las contraseñas deberán almacenarse mediante hash seguro.
 
 
@@ -482,7 +486,7 @@ Tablas de M01 a partir de V3:
 
 
 
-\- `dbo.cargos`: catálogo de puestos laborales (no son roles). Semilla: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+\- `dbo.cargos`: catálogo de puestos laborales (no son roles). Semilla V3 más Ayudante de cajero y Motorizado (V6): Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo.
 
 \- `dbo.empleados`: trabajadores. DNI único de 8 dígitos cuando existe; puede ser NULL solo en registros heredados de usuarios que no tenían DNI. `archivado` (V4) marca la baja lógica. `fecha_archivado` (V5) es cuándo se pulsó Eliminar.
 
@@ -491,6 +495,18 @@ Tablas de M01 a partir de V3:
 
 
 Inactivar un empleado inactiva su usuario en la misma operación. Archivar un empleado archiva también su usuario. Reactivar el empleado no reactiva la cuenta. Último acceso se actualiza solo tras un login exitoso.
+
+
+
+Tablas de turnos (V9, V12 a V14):
+
+
+
+\- `dbo.horario_operacion`: horario base por unidad (Restaurante 07:00-16:00, Pollería 16:00-01:00, zona `America/Lima`).
+
+\- `dbo.turnos`: `usuario_apertura_id` puede ser nulo (apertura automática); el cierre registra `usuario_cierre_id`.
+
+\- `dbo.turno_asistencia`: una fila por turno y usuario; `funcion_temporal` puede ser MESERO, COCINA, CAJA o SUPERVISOR.
 
 
 

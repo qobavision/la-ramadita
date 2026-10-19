@@ -22,6 +22,8 @@ la-ramadita/
 |-- backend/       -> Spring Boot: lógica, API y conexión a la BD
 |-- database/      -> documentación y archivos auxiliares de BD
 |-- docs/          -> manuales y documentación del proyecto
+|-- scripts/       -> configuración local (setup-dev.ps1)
+|-- .env.example   -> nombres de variables; no contiene secretos reales
 |-- .gitignore
 `-- README.md
 ```
@@ -218,58 +220,80 @@ En este momento la base puede estar vacía. **No hay que crear las tablas manual
 
 ---
 
-# 7. Configurar las variables de conexión
+# 7. Configurar el entorno local (una sola vez)
 
-En CMD ejecuta:
+Después de clonar el repositorio y de crear la base en SQL Server, configura las variables de entorno **una sola vez**.
 
-```bat
-setx DB_URL "jdbc:sqlserver://localhost:1433;databaseName=LaRamadita;encrypt=true;trustServerCertificate=true"
-setx DB_USERNAME "laramadita_app"
-setx DB_PASSWORD "TU_PASSWORD_LOCAL_SEGURA"
-```
-
-Después de usar `setx`, cierra CMD y abre una ventana nueva.
-
-Comprueba la configuración:
+Desde la raíz de `la-ramadita`:
 
 ```bat
-echo %DB_URL%
-echo %DB_USERNAME%
-if defined DB_PASSWORD (echo DB_PASSWORD configurada) else (echo DB_PASSWORD NO configurada)
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-dev.ps1
 ```
 
-El último comando verifica que exista la contraseña **sin mostrarla**.
+Qué hace el script:
+
+- si `JWT_SECRET` no existe, genera una clave segura de al menos 32 bytes y la guarda en el usuario de Windows;
+- si `JWT_SECRET` ya existe, no la reemplaza;
+- **no muestra la clave** en pantalla;
+- pide `DB_PASSWORD` (sin mostrarla) si todavía no está configurada;
+- puede pedir el administrador inicial, solo si aún no hay usuarios en la base.
+
+Al terminar verás un mensaje como:
+
+```text
+JWT_SECRET configurada correctamente.
+Cierra y vuelve a abrir la terminal antes de iniciar el backend.
+```
+
+Cierra esa terminal y abre una nueva. Después:
+
+```bat
+cd backend
+.\mvnw.cmd spring-boot:run
+```
+
+Cada desarrollador tiene **su propio** `JWT_SECRET` local. No se comparte por WhatsApp, GitHub ni documentación. Nunca se debe hacer commit de un secreto.
+
+El archivo `.env.example` solo lista nombres y placeholders. **Spring Boot no lo carga.** Las variables reales viven en el entorno de Windows.
+
+Para CI/CD, GitHub puede usar **GitHub Secrets**. Esos valores tampoco van dentro del código.
 
 Nunca escribas una contraseña real dentro de `application.properties` ni la subas a GitHub.
 
-## 7.1 Variables de seguridad (módulo M01)
+## 7.1 Variables que usa el backend
 
-El backend también necesita estas variables. Igual que las de conexión, se configuran una vez con `setx` y **nunca se escriben en archivos del repositorio**.
+Nombres reales leídos desde `application.properties`:
 
 | Variable | Obligatoria | Para qué sirve |
 |---|---|---|
-| `JWT_SECRET` | Sí | Clave con la que se firman los tokens de sesión. Debe tener **al menos 32 caracteres**. Si falta, el backend no arranca. |
-| `JWT_EXPIRATION_MINUTES` | No | Duración del token en minutos. Si no se define, se usan 480 (8 horas). |
+| `DB_URL` | Sí | Cadena JDBC de SQL Server. |
+| `DB_USERNAME` | Sí | Usuario de la base. |
+| `DB_PASSWORD` | Sí | Contraseña de la base. |
+| `JWT_SECRET` | Sí | Firma de los tokens. Mínimo 32 caracteres. Si falta, el backend no arranca. |
+| `JWT_EXPIRATION_MINUTES` | No | Duración del token. Si no se define, se usan 480 minutos. |
 | `APP_ADMIN_USERNAME` | Solo la primera vez | Usuario del ADMINISTRADOR inicial. |
 | `APP_ADMIN_PASSWORD` | Solo la primera vez | Contraseña del ADMINISTRADOR inicial (mínimo 8 caracteres). |
-| `CORS_ALLOWED_ORIGINS` | No | Dirección desde la que se sirve el frontend. Si no se define, se usa `http://localhost:4200`. En red local, poner la IP de la PC que sirve Angular. |
-
-Ejemplo en CMD (reemplaza los valores por los tuyos; no uses estos):
-
-```bat
-setx JWT_SECRET "UNA_CLAVE_LARGA_Y_ALEATORIA_DE_32_O_MAS_CARACTERES"
-setx APP_ADMIN_USERNAME "TU_USUARIO_ADMIN"
-setx APP_ADMIN_PASSWORD "TU_PASSWORD_ADMIN_SEGURA"
-```
+| `CORS_ALLOWED_ORIGINS` | No | Origen del frontend. Si no se define, se usa `http://localhost:4200`. |
 
 Cómo funciona el ADMINISTRADOR inicial:
 
 - El backend **solo** crea ese usuario cuando la tabla `usuarios` está vacía y las dos variables existen.
 - Si la tabla está vacía y faltan las variables, el backend arranca igual y muestra una advertencia en consola.
-- Cuando ya existe al menos un usuario, las variables se ignoran y puedes quitarlas de tu computadora.
+- Cuando ya existe al menos un usuario, las variables se ignoran.
 - No existe ninguna contraseña por defecto en el código.
 
-Después de usar `setx`, cierra CMD y abre una ventana nueva.
+## 7.2 Comprobar sin mostrar secretos
+
+En una terminal **nueva**, después del script:
+
+```bat
+echo %DB_URL%
+echo %DB_USERNAME%
+if defined DB_PASSWORD (echo DB_PASSWORD configurada) else (echo DB_PASSWORD NO configurada)
+if defined JWT_SECRET (echo JWT_SECRET configurada) else (echo JWT_SECRET NO configurada)
+```
+
+No uses `echo %JWT_SECRET%` ni `echo %DB_PASSWORD%`.
 
 ---
 
@@ -302,11 +326,11 @@ Para detenerlo: `Ctrl + C`.
 
 ## Terminal 2 - Backend
 
-Desde la raíz del proyecto:
+Usa una terminal **nueva** (después de `setup-dev.ps1`). Desde la raíz del proyecto:
 
 ```bat
 cd backend
-mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 Qué hace:

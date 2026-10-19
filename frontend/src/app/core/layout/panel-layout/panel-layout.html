@@ -45,6 +45,12 @@
 
       @if (usuario(); as u) {
         <div class="panel__usuario">
+          @if (panelAsignado(); as destino) {
+            <a class="panel__regresar" [routerLink]="destino" title="Ir al panel de la función asignada">
+              <app-icono nombre="flecha" [tamano]="16" />
+              <span>Ir a {{ etiquetaFuncion() }}</span>
+            </a>
+          }
           @if (panelPropio(); as destino) {
             <a class="panel__regresar" [routerLink]="destino" title="Volver a mi panel">
               <app-icono nombre="volver" [tamano]="16" />
@@ -54,7 +60,7 @@
           <span class="panel__avatar" aria-hidden="true">{{ iniciales() }}</span>
           <span class="panel__quien">
             <b>{{ nombreCompleto() }}</b>
-            <small>{{ rolEtiqueta() }} · {{ u.username }}</small>
+            <small>{{ rolEtiqueta() }}@if (etiquetaFuncion(); as funcion) { · {{ funcion }}} · {{ u.username }}</small>
           </span>
         </div>
       }

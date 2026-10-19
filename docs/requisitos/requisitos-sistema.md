@@ -192,7 +192,7 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 
 
-\- Cargo: función laboral del empleado. Cargos iniciales: Cocinero, Ayudante de cocina, Mesero, Cajero, Supervisor, Seguridad, Almacenero, Otro.
+\- Cargo: función laboral del empleado. Cargos: Supervisor, Cajero, Ayudante de cajero, Cocinero, Ayudante de cocina, Mesero, Motorizado, Almacenero, Seguridad, Otro. Administrador no es un cargo: es un rol del sistema.
 
 \- Rol: permisos dentro del sistema (ADMINISTRADOR, SUPERVISOR, MESERO, COCINA, CAJA).
 
@@ -234,13 +234,21 @@ El rol DUEÑO de los documentos originales equivale oficialmente a ADMINISTRADOR
 
 
 
-\*\*Asignaciones temporales (previstas, no implementadas)\*\*
+\*\*Asignaciones temporales (implementadas)\*\*
 
 
 
-\- Se contemplan asignaciones operativas temporales dentro de un turno para MESERO, COCINA y CAJA.
+\- Dentro de un turno `EN_CURSO`, ADMINISTRADOR o SUPERVISOR pueden asignar una función temporal a una persona del personal: MESERO, COCINA o CAJA.
 
-\- El SUPERVISOR podrá realizarlas cuando se implementen.
+\- Solo ADMINISTRADOR puede asignar SUPERVISOR como función temporal.
+
+\- SUPERVISOR no puede asignar SUPERVISOR ni gestionar (asignar o expulsar) a un ADMINISTRADOR.
+
+\- La función temporal no cambia el rol permanente ni el JWT. `/auth/me` expone `funcionActual`. Esa función otorga el panel operativo correspondiente, además del panel del rol permanente.
+
+\- ADMINISTRADOR conserva acceso a todos los paneles aunque no tenga función temporal.
+
+\- Expulsar quita a la persona del personal del turno (borra la fila de asistencia). Un nuevo inicio de sesión la vuelve a registrar si el turno sigue abierto.
 
 
 
@@ -330,6 +338,100 @@ Una operación iniciada como Restaurante o Pollería conserva esa unidad hasta f
 
 
 
+\## Horario base y apertura de turno
+
+
+
+Horarios base (zona `America/Lima`, editables por ADMINISTRADOR):
+
+
+
+\- Restaurante: 07:00 a 16:00;
+
+\- Pollería: 16:00 a 01:00.
+
+
+
+El turno no se abre al primer inicio de sesión del día.
+
+
+
+Se abre automáticamente al llegar la hora de inicio de la unidad, o al arrancar el sistema si todavía está dentro de la ventana.
+
+
+
+El proceso programado (cada minuto) no reabre un turno si ya existió uno ese día y esa unidad, aunque esté cerrado. Así, Finalizar no vuelve a abrir el mismo turno de inmediato.
+
+
+
+Al arrancar el sistema sí puede abrirse el turno de la ventana vigente, aunque ese día ya se haya cerrado uno (por ejemplo, si la PC se apagó y se volvió a encender dentro del horario).
+
+
+
+Pollería solo se abre automáticamente si no hay otro turno `EN_CURSO`.
+
+
+
+La apertura automática no asigna un supervisor: el responsable se muestra como `Apertura automática`. `usuario_apertura_id` puede ser nulo.
+
+
+
+ADMINISTRADOR o SUPERVISOR pueden iniciar o finalizar el turno de forma manual. El cierre registra quién lo cerró (`usuario_cierre_id`).
+
+
+
+El inicio de sesión nunca se bloquea por no haber turno abierto.
+
+
+
+\## Personal del turno
+
+
+
+El personal del turno son quienes inician sesión cuando ya hay un turno `EN_CURSO` (o quien abre el turno de forma manual).
+
+
+
+Reingresar en el mismo turno no duplica la fila: se conserva la primera `hora_ingreso`.
+
+
+
+El responsable mostrado en Inicio y Turnos es quien abrió el turno, no quien está viendo la pantalla.
+
+
+
+\## Dashboard de supervisión (Inicio)
+
+
+
+Indicadores que ya usan datos reales:
+
+
+
+\- Personal activo (mismo origen que Turnos), con desglose por función actual;
+
+\- Compras por recibir (Pendiente y Parcial);
+
+\- Alertas de stock (bajo y agotado);
+
+\- Mesas registradas (nombre y zona). El filtro de mesas es Todas (por defecto), Libres y Ocupadas.
+
+
+
+Indicadores que permanecen vacíos hasta que existan sus módulos:
+
+
+
+\- Pedidos en curso y pedidos atendidos hoy;
+
+\- Ventas del día;
+
+\- Ocupación real de mesa, mesero, pedido, tiempo y total;
+
+\- Tablas de cajas y cocina.
+
+
+
 \---
 
 
@@ -368,7 +470,15 @@ El sistema debe permitir:
 
 \- fecha;
 
-\- costo.
+\- importe de cada línea.
+
+
+
+Eliminar un proveedor es archivado (baja lógica, migración V11). No hay eliminación física ni un interruptor de activo en el listado operativo.
+
+
+
+En la compra, la línea se registra con `Importe` (total de la línea). El precio unitario se calcula internamente (`importe / cantidad`, cuatro decimales) para valorizar stock; no se pide al usuario.
 
 
 
@@ -376,7 +486,7 @@ Al registrar una compra:
 
 
 
-`Estado = Pendiente de recepción`
+`Estado = Pendiente`
 
 
 
@@ -396,7 +506,9 @@ Cuando la mercadería llegue:
 
 \- el inventario aumenta;
 
-\- la compra cambia a `Recibida`.
+\- se genera un movimiento `ENTRADA` con origen `Recepción COMP-xxx`;
+
+\- la compra cambia a `Recibida` o `Parcial` si aún falta mercadería.
 
 
 
@@ -474,7 +586,11 @@ Ejemplo conceptual:
 
 
 
-Cuando corresponda, el sistema debe registrar el consumo de insumos relacionado con los productos preparados.
+Los combos y recetas se arman en Inventario: un producto compuesto por componentes (insumos u otros productos) con cantidades.
+
+
+
+Cuando corresponda, el sistema debe registrar el consumo de insumos relacionado con los productos preparados. El movimiento `CONSUMO` se registrará cuando exista el módulo de pedidos.
 
 
 
@@ -542,6 +658,10 @@ Un producto podrá pertenecer a:
 
 
 
+Los combos se ofrecen en carta con nombre pensado para el mesero, sin prefijo `Combo`. El plato ejecutivo comparte precio entre unidades cuando corresponde.
+
+
+
 \## Carta diaria
 
 
@@ -581,6 +701,14 @@ Un producto `Agotado`:
 \- debe mostrarse visualmente diferente;
 
 \- no puede agregarse a nuevos pedidos.
+
+
+
+Un producto no debe duplicarse en la misma sección de una carta. Si en consulta aparece más de una vez el mismo producto en la misma sección, prevalece el último.
+
+
+
+La consulta de carta devuelve detalles únicos. La carta de Pollería y la sección de marinos se muestran en tablas compactas para lectura operativa.
 
 
 
@@ -1583,4 +1711,72 @@ antes de continuar.
 
 
 No inventar requisitos para completar vacíos.
+
+
+
+\---
+
+
+
+\# 19. Estado de implementación documentado
+
+
+
+Este apartado resume lo ya construido en el repositorio oficial para el informe del proyecto. No sustituye los requisitos de cada módulo. Lo que aún depende de pedidos, cocina, caja o ventas permanece pendiente a propósito.
+
+
+
+\## M01 Usuarios, roles y acceso
+
+
+
+Implementado: empleados, cargos, usuarios, rol permanente, activo/inactivo, archivado, último acceso, login local con JWT. ADMINISTRADOR accede a todos los paneles con la misma identidad.
+
+
+
+Implementado: función temporal del turno (MESERO, COCINA, CAJA; SUPERVISOR solo si lo asigna un ADMINISTRADOR), expulsar del personal, y acceso al panel según `funcionActual` sin cambiar el rol permanente.
+
+
+
+\## M02 Unidades, turnos e Inicio
+
+
+
+Implementado: horarios base por unidad (`America/Lima`), apertura automática, apertura al arrancar si la ventana está vigente, inicio y cierre manual, responsable `Apertura automática` o quien abrió, quién cerró, personal por inicios de sesión posteriores a la apertura, reingreso único.
+
+
+
+Dashboard Inicio: personal activo, compras por recibir y alertas de stock son reales. Pedidos, ventas, ocupación de mesa, cajas y cocina esperan sus módulos.
+
+
+
+\## M03 Compras y recepción
+
+
+
+Implementado: proveedores (semilla inicial), archivado de proveedor, registro de compra con `Importe` de línea, estados Pendiente / Parcial / Recibida, recepción que sí incrementa stock y genera movimiento `ENTRADA`.
+
+
+
+\## M04 Inventario y recetas
+
+
+
+Implementado: insumos, stock mínimo, alertas, movimientos de entrada por recepción, armado de recetas y combos en Inventario. Pendiente: consumo automático al preparar pedidos.
+
+
+
+\## M05 Productos y carta diaria
+
+
+
+Implementado: productos, categorías, carta por unidad, combos sin prefijo `Combo` en el nombre de carta, precio compartido del ejecutivo, consulta de carta con detalles únicos, tablas compactas en Pollería y marinos.
+
+
+
+\## M06 a M12
+
+
+
+Mesas registradas y zonas existen. Atención, pedidos, cocina, caja, comprobantes, ventas y reportes operativos aún no alimentan Inicio ni el flujo de servicio.
 

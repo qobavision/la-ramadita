@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
-import { rutaPanelDe } from '../../auth/paneles';
+import { rutaInicioDe } from '../../auth/paneles';
 
 /**
  * Protege rutas que solo requieren sesión (sin distinguir rol). Si existe un
@@ -28,7 +28,7 @@ export const invitadoGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return auth.restaurarSesion().pipe(
-    map((usuario) => (usuario ? router.parseUrl(rutaPanelDe(usuario.rol)) : true)),
+    map((usuario) => (usuario ? router.parseUrl(rutaInicioDe(usuario)) : true)),
   );
 };
 
@@ -41,6 +41,6 @@ export const inicioGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   return auth.restaurarSesion().pipe(
-    map((usuario) => router.parseUrl(usuario ? rutaPanelDe(usuario.rol) : '/login')),
+    map((usuario) => router.parseUrl(usuario ? rutaInicioDe(usuario) : '/login')),
   );
 };

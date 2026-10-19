@@ -1,0 +1,248 @@
+<app-encabezado-pagina eyebrow="Configuración" titulo="Turnos" />
+
+@if (error() && !dialogo(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<section class="lr-dashboard-fila lr-dashboard-fila--turno">
+  <div>
+    <h2 class="lr-seccion">Horarios base</h2>
+    <div class="lr-horarios">
+      @for (h of horarios(); track h.unidad) {
+        <article class="lr-tarjeta lr-tarjeta-fila">
+          <header>
+            <div>
+              <strong>{{ h.unidad }}</strong>
+              <small>{{ h.horaInicio }} - {{ h.horaFin }}</small>
+            </div>
+            <button type="button" class="lr-accion" title="Editar horario" (click)="abrirHorario(h)">
+              <app-icono nombre="editar" [tamano]="16" />
+            </button>
+          </header>
+        </article>
+      }
+    </div>
+  </div>
+
+  <div>
+    <h2 class="lr-seccion">Turno actual</h2>
+    <article class="lr-tarjeta lr-turno">
+      <div class="lr-turno__cabecera">
+        <p class="lr-turno__unidad">{{ tituloTurno() }}</p>
+        <span class="lr-estado {{ marcador().clase }}">
+          @if (turno().estado !== 'CERRADO') {
+            <app-icono nombre="reloj" [tamano]="14" />
+          }
+          {{ marcador().texto }}
+        </span>
+      </div>
+      <div class="lr-turno__datos">
+        <div class="lr-turno__dato">
+          <span>Inicio</span>
+          <strong>{{ horarioMostrado().inicio }}</strong>
+        </div>
+        <div class="lr-turno__dato">
+          <span>Fin programado</span>
+          <strong>{{ horarioMostrado().fin }}</strong>
+        </div>
+        <div class="lr-turno__dato">
+          <span>Responsable</span>
+          <strong>{{ responsable() }}</strong>
+        </div>
+        @if (turno().cerradoPor) {
+          <div class="lr-turno__dato">
+            <span>Cerrado por</span>
+            <strong>{{ cerradoPor() }}</strong>
+          </div>
+        }
+      </div>
+      <div class="lr-turno__acciones">
+        <button type="button" class="btn btn-outline-secondary" (click)="iniciarTurno()" [disabled]="turno().estado !== 'CERRADO'">
+          Iniciar turno
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="prepararCierre()" [disabled]="turno().estado !== 'ACTIVO'">
+          Preparar cierre
+        </button>
+        <button type="button" class="btn btn-primary" (click)="pedirFinalizar()" [disabled]="turno().estado !== 'EN CIERRE'">
+          Finalizar turno
+        </button>
+      </div>
+    </article>
+  </div>
+</section>
+
+<div class="mt-4">
+  <app-encabezado-pagina
+    titulo="Personal"
+    descripcion="Quienes iniciaron sesión con el turno ya abierto. El rol permanente no cambia; la función actual sí puede ser temporal para este turno."
+  />
+</div>
+<div class="lr-herramientas" role="search">
+  <label class="lr-buscador">
+    <app-icono nombre="buscar" [tamano]="16" />
+    <input type="search" placeholder="Buscar por nombre o usuario" [value]="busqueda()" (input)="actualizarBusqueda($event)" />
+  </label>
+  <app-segmento
+    etiqueta="Función actual"
+    [opciones]="filtrosFuncion"
+    [valor]="filtroFuncion()"
+    (valorChange)="cambiarFiltro($event!)"
+  />
+</div>
+
+@if (filtrados().length === 0) {
+  <app-tabla-listado
+    [columnas]="columnas"
+    [total]="0"
+    vacioIcono="empleados"
+    [vacioTitulo]="vacioPorFiltro() ? 'Ninguna persona coincide con la búsqueda' : 'No hay personal activo en este turno'"
+    [vacioDescripcion]="
+      vacioPorFiltro()
+        ? 'Prueba con otro nombre, usuario o función actual.'
+        : 'Aparecen quienes ingresan después de abrir el turno.'
+    "
+  />
+} @else {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnas" [total]="filtrados().length">
+      @for (p of filtrados(); track p.id) {
+        <tr filas>
+          <td><strong>{{ p.empleado }}</strong></td>
+          <td>{{ p.username }}</td>
+          <td>{{ etiquetaRol[p.rolPermanente] }}</td>
+          <td>
+            <span class="lr-estado {{ claseTemporal(p) }}">{{ etiquetaFuncion(p) }}</span>
+          </td>
+          <td>{{ p.horaIngreso }}</td>
+          <td class="num lr-tabla__acciones">
+            @if (puedeGestionar(p)) {
+              <div class="lr-acciones">
+                <button type="button" class="lr-accion" title="Asignar función temporal" (click)="abrirAsignar(p)">
+                  <app-icono nombre="editar" [tamano]="16" />
+                </button>
+                <button type="button" class="lr-accion" title="Quitar del turno" (click)="pedirExpulsar(p)">
+                  <app-icono nombre="eliminar" [tamano]="16" />
+                </button>
+              </div>
+            }
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (p of filtrados(); track p.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ p.empleado }}</strong>
+            <small>{{ p.username }} · {{ etiquetaRol[p.rolPermanente] }}</small>
+          </div>
+          @if (puedeGestionar(p)) {
+            <div class="lr-acciones">
+              <button type="button" class="lr-accion" title="Asignar función temporal" (click)="abrirAsignar(p)">
+                <app-icono nombre="editar" [tamano]="16" />
+              </button>
+              <button type="button" class="lr-accion" title="Quitar del turno" (click)="pedirExpulsar(p)">
+                <app-icono nombre="eliminar" [tamano]="16" />
+              </button>
+            </div>
+          }
+        </header>
+        <dl>
+          <dt>Función actual</dt>
+          <dd><span class="lr-estado {{ claseTemporal(p) }}">{{ etiquetaFuncion(p) }}</span></dd>
+          <dt>Ingreso</dt>
+          <dd>{{ p.horaIngreso }}</dd>
+        </dl>
+      </article>
+    }
+  </div>
+}
+
+@if (dialogo() === 'horario' && horarioEditando(); as horario) {
+  <app-dialogo eyebrow="Configuración" [titulo]="'Horario ' + horario.unidad" (cerrar)="cerrar()">
+    <div class="lr-formulario">
+      <div>
+        <label class="form-label" for="hora-inicio">Hora de inicio</label>
+        <input id="hora-inicio" class="form-control" type="time" [ngModel]="horaInicio()" (ngModelChange)="horaInicio.set($event)" />
+      </div>
+      <div>
+        <label class="form-label" for="hora-fin">Hora de fin</label>
+        <input id="hora-fin" class="form-control" type="time" [ngModel]="horaFin()" (ngModelChange)="horaFin.set($event)" />
+      </div>
+      @if (error(); as texto) {
+        <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+      }
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardarHorario()" [disabled]="!horaInicio() || !horaFin()">Guardar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'finalizar') {
+  <app-dialogo eyebrow="Configuración" titulo="Finalizar turno" (cerrar)="cerrar()">
+    <p class="mb-3">¿Seguro de finalizar el turno de {{ turno().unidad }}?</p>
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarFinalizar()">Finalizar turno</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'asignar' && seleccionado(); as persona) {
+  <app-dialogo eyebrow="Turno" titulo="Función actual" (cerrar)="cerrar()">
+    <div class="lr-formulario" style="grid-template-columns: 1fr">
+      <div>
+        <span class="form-label">Empleado</span>
+        <p class="mb-0"><strong>{{ persona.empleado }}</strong></p>
+      </div>
+      <div>
+        <span class="form-label">Rol permanente</span>
+        <p class="mb-0">{{ etiquetaRol[persona.rolPermanente] }}</p>
+      </div>
+      <div>
+        <span class="form-label">Función actual</span>
+        <p class="mb-0">
+          <span class="lr-estado {{ claseTemporal(persona) }}">{{ etiquetaFuncion(persona) }}</span>
+        </p>
+      </div>
+      <div>
+        <label class="form-label" for="funcion-temp">Nueva función para este turno</label>
+        <select id="funcion-temp" class="form-select" [ngModel]="rolElegido()" (ngModelChange)="rolElegido.set($event)">
+          @for (r of opcionesTemporales(); track r) {
+            <option [ngValue]="r">{{ etiquetaRol[r] }}</option>
+          }
+        </select>
+      </div>
+      @if (error(); as texto) {
+        <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+      }
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        @if (esTemporal(persona)) {
+          <button type="button" class="btn btn-outline-secondary" (click)="volverPermanente()">Volver a función permanente</button>
+        }
+        <button type="button" class="btn btn-primary" (click)="confirmarAsignar()">Asignar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'expulsar' && seleccionado(); as persona) {
+  <app-dialogo eyebrow="Turno" titulo="Quitar del turno" (cerrar)="cerrar()">
+    <p class="mb-3">¿Quitar a {{ persona.empleado }} de este turno? Dejará de aparecer en el personal.</p>
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarExpulsar()">Quitar</button>
+    </div>
+  </app-dialogo>
+}

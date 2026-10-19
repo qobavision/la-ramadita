@@ -13,6 +13,7 @@ import {
   nombreCompletoDe,
 } from '../../../personal/personal.models';
 import { EmpleadosService } from '../../../personal/empleados.service';
+import { ordenarCargos } from '../admin.catalogos';
 import { EncabezadoPagina } from '../../../shared/ui/encabezado-pagina/encabezado-pagina';
 import { Dialogo } from '../../../shared/ui/dialogo/dialogo';
 import { Icono } from '../../../shared/ui/icono/icono';
@@ -94,7 +95,7 @@ export class AdminEmpleados {
 
   protected recargar(): void {
     this.api.listarCargos().subscribe({
-      next: (cargos) => this.cargos.set(cargos),
+      next: (cargos) => this.cargos.set(ordenarCargos(cargos)),
       error: (error) => this.aviso.set(mensajeDeError(error)),
     });
     this.api.listar().subscribe({

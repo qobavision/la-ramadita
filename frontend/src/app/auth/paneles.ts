@@ -1,4 +1,4 @@
-import { Rol } from './auth.models';
+import { Rol, Usuario } from './auth.models';
 
 /** Ruta raíz del panel que corresponde a cada rol oficial. */
 export const PANEL_POR_ROL: Record<Rol, string> = {
@@ -8,6 +8,8 @@ export const PANEL_POR_ROL: Record<Rol, string> = {
   COCINA: '/cocina',
   CAJA: '/caja',
 };
+
+const ROLES_OPERATIVOS: readonly Rol[] = ['SUPERVISOR', 'MESERO', 'COCINA', 'CAJA'];
 
 /**
  * Rol con control general del sistema. Decisión del equipo: además de su
@@ -21,10 +23,29 @@ export function rutaPanelDe(rol: Rol | string | null | undefined): string {
   return (rol && PANEL_POR_ROL[rol as Rol]) || '/';
 }
 
+/** Panel al que entra tras el login: la función del turno, si es operativa. */
+export function rutaInicioDe(usuario: Pick<Usuario, 'rol' | 'funcionActual'>): string {
+  const funcion = usuario.funcionActual;
+  if (funcion && ROLES_OPERATIVOS.includes(funcion)) {
+    return PANEL_POR_ROL[funcion];
+  }
+  return rutaPanelDe(usuario.rol);
+}
+
 /**
- * Indica si un rol puede entrar a un panel pensado para `rolesPanel`.
- * El rol de control general entra a todos; los demás solo al suyo.
+ * Indica si el usuario puede entrar a un panel pensado para `rolesPanel`.
+ * El administrador entra a todos. Los demás entran con su rol permanente
+ * y, si el turno les asignó otra función, también a ese panel.
  */
-export function puedeEntrarAlPanel(rol: Rol, rolesPanel: readonly Rol[]): boolean {
-  return rol === ROL_CONTROL_GENERAL || rolesPanel.includes(rol);
+export function puedeEntrarAlPanel(
+  usuario: Pick<Usuario, 'rol' | 'funcionActual'>,
+  rolesPanel: readonly Rol[],
+): boolean {
+  if (usuario.rol === ROL_CONTROL_GENERAL) {
+    return true;
+  }
+  if (rolesPanel.includes(usuario.rol)) {
+    return true;
+  }
+  return !!usuario.funcionActual && rolesPanel.includes(usuario.funcionActual);
 }

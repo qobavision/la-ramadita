@@ -19,6 +19,7 @@ public record UsuarioResponse(
 		String apellido,
 		String rol,
 		String rolNombre,
+		String funcionActual,
 		boolean activo,
 		boolean archivado,
 		LocalDateTime fechaCreacion,
@@ -27,15 +28,21 @@ public record UsuarioResponse(
 		EmpleadoResumenResponse empleado) {
 
 	public static UsuarioResponse de(Usuario u) {
+		return de(u, u.getRol().getNombre().name());
+	}
+
+	public static UsuarioResponse de(Usuario u, String funcionActual) {
 		Empleado empleado = u.getEmpleado();
+		String permanente = u.getRol().getNombre().name();
 		return new UsuarioResponse(
 				u.getId(),
 				empleado == null ? null : empleado.getId(),
 				u.getUsername(),
 				empleado != null ? empleado.getNombres() : u.getNombre(),
 				empleado != null ? vacioANulo(empleado.getApellidos()) : u.getApellido(),
-				u.getRol().getNombre().name(),
+				permanente,
 				u.getRol().getNombre().valorBaseDatos(),
+				funcionActual == null || funcionActual.isBlank() ? permanente : funcionActual,
 				u.isActivo(),
 				u.isArchivado(),
 				u.getFechaCreacion(),
