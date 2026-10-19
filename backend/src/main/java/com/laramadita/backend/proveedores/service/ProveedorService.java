@@ -27,8 +27,8 @@ public class ProveedorService {
 	@Transactional(readOnly = true)
 	public List<ProveedorResponse> listar(boolean soloActivos) {
 		List<Proveedor> lista = soloActivos
-				? proveedores.findByActivoTrueOrderByNombreRazonSocialAsc()
-				: proveedores.findAllByOrderByNombreRazonSocialAsc();
+				? proveedores.findByActivoTrueAndArchivadoFalseOrderByNombreRazonSocialAsc()
+				: proveedores.findByArchivadoFalseOrderByNombreRazonSocialAsc();
 		return lista.stream().map(ProveedorResponse::de).toList();
 	}
 
@@ -49,6 +49,9 @@ public class ProveedorService {
 
 	public ProveedorResponse actualizar(Integer id, ProveedorRequest request) {
 		Proveedor proveedor = buscar(id);
+		if (proveedor.isArchivado()) {
+			throw new ReglaNegocioException("Un proveedor eliminado no puede reactivarse desde Editar");
+		}
 		DatosProveedor datos = validar(request, id);
 		proveedor.actualizar(datos.nombre(), datos.tipo(), datos.documento(), datos.celular(), datos.contacto(),
 				request.activo() == null || request.activo());
@@ -57,6 +60,9 @@ public class ProveedorService {
 
 	public ProveedorResponse alternarActivo(Integer id) {
 		Proveedor proveedor = buscar(id);
+		if (proveedor.isArchivado()) {
+			throw new ReglaNegocioException("Un proveedor eliminado no puede reactivarse desde esta operación");
+		}
 		if (proveedor.isActivo()) {
 			proveedor.desactivar();
 		} else {
@@ -65,9 +71,18 @@ public class ProveedorService {
 		return ProveedorResponse.de(proveedor);
 	}
 
+	public ProveedorResponse archivar(Integer id) {
+		Proveedor proveedor = buscar(id);
+		if (proveedor.isArchivado()) {
+			return ProveedorResponse.de(proveedor);
+		}
+		proveedor.archivar();
+		return ProveedorResponse.de(proveedor);
+	}
+
 	public Proveedor exigirActivo(Integer id) {
 		Proveedor proveedor = buscar(id);
-		if (!proveedor.isActivo()) {
+		if (proveedor.isArchivado() || !proveedor.isActivo()) {
 			throw new ReglaNegocioException("El proveedor no está activo para nuevas compras");
 		}
 		return proveedor;

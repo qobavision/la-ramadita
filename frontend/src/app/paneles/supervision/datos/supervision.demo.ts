@@ -1,26 +1,15 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
-import { InsumosService } from '../../../inventario/insumos.service';
+import { computed, Injectable, signal } from '@angular/core';
 import {
   asignacionesIniciales,
-  cartaInicial,
   horariosBaseIniciales,
   mesasIniciales,
   pedidosIniciales,
   pendientesCierreIniciales,
   personalInicial,
-  productosIniciales,
-  recetasIniciales,
   turnoInicial,
   zonasIniciales,
 } from './supervision.mocks';
-import {
-  DisponibilidadCarta,
-  MesaDemo,
-  ProductoDemo,
-  RecetaDemo,
-  RolTemporal,
-  ZonaDemo,
-} from './supervision.models';
+import { HorarioBase, MesaDemo, RolTemporal, ZonaDemo } from './supervision.models';
 import { normalizarTextoDescriptivo } from '../../../shared/texto/texto-descriptivo';
 
 /**
@@ -29,8 +18,6 @@ import { normalizarTextoDescriptivo } from '../../../shared/texto/texto-descript
  */
 @Injectable({ providedIn: 'root' })
 export class SupervisionDemo {
-  private readonly insumosApi = inject(InsumosService);
-
   readonly horarios = signal(horariosBaseIniciales());
   readonly turno = signal(turnoInicial());
   readonly pendientesCierre = signal(pendientesCierreIniciales());
@@ -39,9 +26,6 @@ export class SupervisionDemo {
   readonly zonas = signal(zonasIniciales());
   readonly mesas = signal(mesasIniciales());
   readonly pedidos = signal(pedidosIniciales());
-  readonly recetas = signal(recetasIniciales());
-  readonly productos = signal(productosIniciales());
-  readonly carta = signal(cartaInicial());
 
   readonly mesasLibres = computed(() => this.mesas().filter((m) => m.activa && m.estadoOp === 'Libre').length);
   readonly mesasOcupadas = computed(() => this.mesas().filter((m) => m.activa && m.estadoOp === 'Ocupada').length);
@@ -49,19 +33,28 @@ export class SupervisionDemo {
   readonly pedidosCocina = computed(() => this.pedidos().filter((p) => p.estado === 'Pendiente cocina').length);
   readonly pedidosPreparados = computed(() => this.pedidos().filter((p) => p.estado === 'Preparado').length);
   readonly atencionesAbiertas = computed(() => this.mesas().filter((m) => m.atencion).length);
-  readonly productosAgotados = computed(() => this.carta().filter((c) => c.disponibilidad === 'Agotado').length);
   readonly personalActivo = computed(() => this.personal().length);
 
-  iniciarTurnoAnticipado(): void {
+  actualizarHorario(unidad: HorarioBase['unidad'], horaInicio: string, horaFin: string): void {
+    this.horarios.update((lista) =>
+      lista.map((h) => (h.unidad === unidad ? { ...h, horaInicio, horaFin, configurado: true } : h)),
+    );
+  }
+
+  iniciarTurnoAnticipado(responsable: string): void {
     const actual = this.turno();
     const siguiente = actual.unidad === 'Pollería' ? this.horarios()[0] : this.horarios()[1];
+    const ahora = new Date();
     this.turno.set({
+      id: null,
       unidad: siguiente.unidad,
-      horaInicio: siguiente.horaInicio,
+      horaInicio: horaActual(ahora),
       horaFin: siguiente.horaFin,
       estado: 'ACTIVO',
       caja: 'Abierta',
-      alerta: `Turno ${siguiente.unidad} iniciado de forma anticipada (simulado).`,
+      alerta: null,
+      responsable: responsable || actual.responsable,
+      cerradoPor: '',
     });
   }
 
@@ -127,14 +120,66 @@ export class SupervisionDemo {
     );
   }
 
-  guardarZona(entrada: { id?: number; nombre: string; activa: boolean }): void {
+  asignarFuncionTemporal(personalId: number, rol: RolTemporal | null): void {
+    const persona = this.personal().find((p) => p.id === personalId);
+    if (!persona) {
+      return;
+    }
+    const temporal = rol && rol !== persona.rolPermanente ? rol : null;
+    this.personal.update((lista) =>
+      lista.map((p) =>
+        p.id === personalId
+          ? {
+              ...p,
+              funcionActual: temporal ? `${temporal} (temporal)` : p.rolPermanente,
+              estado: temporal ? ('Asignación temporal' as const) : ('En turno' as const),
+            }
+          : p,
+      ),
+    );
+    this.asignaciones.update((lista) => {
+      const indice = lista.findIndex((a) => a.username === persona.username);
+      const siguiente = {
+        empleado: persona.empleado,
+        username: persona.username,
+        rolPermanente: persona.rolPermanente,
+        rolTemporal: temporal,
+        turno: this.turno().unidad,
+        estado: temporal ? ('Vigente' as const) : ('Sin asignación' as const),
+      };
+      if (indice < 0) {
+        if (!temporal) {
+          return lista;
+        }
+        const id = Math.max(0, ...lista.map((a) => a.id)) + 1;
+        return [...lista, { id, ...siguiente }];
+      }
+      return lista.map((a, i) => (i === indice ? { ...a, ...siguiente } : a));
+    });
+  }
+
+  guardarZona(entrada: {
+    id?: number;
+    nombre: string;
+    activa?: boolean;
+    mesas: number;
+    cajas: number;
+    cocinas: number;
+  }): void {
     const nombre = normalizarTextoDescriptivo(entrada.nombre);
     if (!nombre) {
       return;
     }
+    const mesas = Math.max(0, Math.floor(entrada.mesas) || 0);
+    const cajas = Math.max(0, Math.floor(entrada.cajas) || 0);
+    const cocinas = Math.max(0, Math.floor(entrada.cocinas) || 0);
     if (entrada.id) {
       this.zonas.update((lista) =>
-        lista.map((z) => (z.id === entrada.id ? { ...z, nombre, activa: entrada.activa } : z)),
+        lista.map((z) =>
+          z.id === entrada.id
+            ? { ...z, nombre, mesas, cajas, cocinas, activa: entrada.activa ?? z.activa }
+            : z,
+        ),
       );
       this.mesas.update((lista) =>
         lista.map((m) => (m.zonaId === entrada.id ? { ...m, zona: nombre } : m)),
@@ -142,11 +187,25 @@ export class SupervisionDemo {
       return;
     }
     const id = Math.max(0, ...this.zonas().map((z) => z.id)) + 1;
-    this.zonas.update((lista) => [...lista, { id, nombre, activa: entrada.activa }]);
+    this.zonas.update((lista) => [
+      ...lista,
+      { id, nombre, activa: entrada.activa ?? true, mesas, cajas, cocinas },
+    ]);
   }
 
   alternarZona(zona: ZonaDemo): void {
+    if (zona.activa && this.mesas().some((m) => m.zonaId === zona.id && m.activa && m.estadoOp === 'Ocupada')) {
+      return;
+    }
     this.zonas.update((lista) => lista.map((z) => (z.id === zona.id ? { ...z, activa: !z.activa } : z)));
+  }
+
+  eliminarZona(zona: ZonaDemo): void {
+    const tieneUso = this.mesas().some((m) => m.zonaId === zona.id);
+    if (tieneUso) {
+      return;
+    }
+    this.zonas.update((lista) => lista.filter((z) => z.id !== zona.id));
   }
 
   guardarMesa(entrada: { id?: number; nombre: string; zonaId: number; activa: boolean }): void {
@@ -184,89 +243,8 @@ export class SupervisionDemo {
   alternarMesa(mesa: MesaDemo): void {
     this.mesas.update((lista) => lista.map((m) => (m.id === mesa.id ? { ...m, activa: !m.activa } : m)));
   }
+}
 
-  quitarInsumoDeRecetas(id: number): void {
-    this.recetas.update((lista) =>
-      lista.map((r) => ({
-        ...r,
-        insumos: r.insumos.filter((l) => l.insumoId !== id),
-      })),
-    );
-  }
-
-  guardarProducto(entrada: Omit<ProductoDemo, 'id'> & { id?: number }): void {
-    const nombre = normalizarTextoDescriptivo(entrada.nombre);
-    if (!nombre) {
-      return;
-    }
-    if (entrada.id) {
-      this.productos.update((lista) =>
-        lista.map((p) => (p.id === entrada.id ? { ...p, ...entrada, id: entrada.id, nombre } : p)),
-      );
-      this.carta.update((lista) =>
-        lista.map((c) => (c.productoId === entrada.id ? { ...c, producto: nombre } : c)),
-      );
-      return;
-    }
-    const id = Math.max(0, ...this.productos().map((p) => p.id)) + 1;
-    this.productos.update((lista) => [...lista, { ...entrada, id, nombre }]);
-  }
-
-  marcarCarta(id: number, disponibilidad: DisponibilidadCarta): void {
-    this.carta.update((lista) => lista.map((c) => (c.id === id ? { ...c, disponibilidad } : c)));
-  }
-
-  recetaDe(id: number): RecetaDemo | undefined {
-    return this.recetas().find((r) => r.id === id);
-  }
-
-  guardarReceta(entrada: {
-    id?: number;
-    nombre: string;
-    lineas: { insumoId: number; cantidad: number }[];
-  }): string | null {
-    const nombre = normalizarTextoDescriptivo(entrada.nombre);
-    if (!nombre) {
-      return 'Ingresa el nombre de la receta.';
-    }
-    if (entrada.lineas.length === 0) {
-      return 'Agrega al menos un insumo.';
-    }
-    const insumos: RecetaDemo['insumos'] = [];
-    for (const linea of entrada.lineas) {
-      const insumo = this.insumosApi.lista().find((i) => i.id === linea.insumoId);
-      if (!insumo) {
-        return 'Selecciona un insumo registrado.';
-      }
-      if (linea.cantidad <= 0) {
-        return 'La cantidad debe ser mayor a 0.';
-      }
-      if (insumos.some((l) => l.insumoId === insumo.id)) {
-        return 'No repitas el mismo insumo en la receta.';
-      }
-      insumos.push({
-        insumoId: insumo.id,
-        insumo: insumo.nombre,
-        unidad: insumo.unidad,
-        cantidad: Number(linea.cantidad.toFixed(3)),
-      });
-    }
-    if (entrada.id) {
-      const actual = this.recetas().find((r) => r.id === entrada.id);
-      if (!actual) {
-        return 'No se encontró la receta.';
-      }
-      this.recetas.update((lista) =>
-        lista.map((r) => (r.id === entrada.id ? { ...r, nombre, insumos } : r)),
-      );
-      return null;
-    }
-    const id = Math.max(0, ...this.recetas().map((r) => r.id)) + 1;
-    this.recetas.update((lista) => [{ id, nombre, insumos }, ...lista]);
-    return null;
-  }
-
-  eliminarReceta(id: number): void {
-    this.recetas.update((lista) => lista.filter((r) => r.id !== id));
-  }
+function horaActual(ahora: Date): string {
+  return `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
 }

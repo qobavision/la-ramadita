@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.hibernate.annotations.Nationalized;
 
 /** Insumo de inventario. Tabla {@code dbo.insumos} de V1. */
@@ -58,6 +59,18 @@ public class Insumo {
 		this.nombre = nombre;
 		this.unidadMedida = unidadMedida;
 		this.stockMinimo = exigirNoNegativo(stockMinimo, "El stock mínimo no puede ser negativo");
+	}
+
+	public void aplicarConversionDeStock(BigDecimal factor) {
+		this.stockActual = convertirCantidad(this.stockActual, factor);
+		if (this.costoReferencial != null) {
+			this.costoReferencial = this.costoReferencial.divide(factor, 4, RoundingMode.HALF_UP);
+		}
+	}
+
+	public static BigDecimal convertirCantidad(BigDecimal valor, BigDecimal factor) {
+		BigDecimal limpio = valor == null ? BigDecimal.ZERO : valor;
+		return limpio.multiply(factor).setScale(3, RoundingMode.HALF_UP);
 	}
 
 	public BigDecimal incrementarStock(BigDecimal cantidad) {

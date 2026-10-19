@@ -35,7 +35,7 @@ interface LineaFormulario {
   clave: number;
   insumoId: number;
   cantidad: number | null;
-  precio: number | null;
+  importe: number | null;
 }
 
 interface LineaRecepcionForm {
@@ -91,7 +91,7 @@ export class SupervisionCompras {
     this.filtroRecepcion() === 'recibidas' ? this.recibidas() : this.pendientes(),
   );
 
-  protected readonly dialogo = signal<'compra' | 'detalle' | 'proveedor' | 'recepcion' | 'eliminar-compra' | null>(null);
+  protected readonly dialogo = signal<'compra' | 'detalle' | 'proveedor' | 'recepcion' | 'eliminar-compra' | 'eliminar-proveedor' | null>(null);
   protected readonly compraId = signal<number | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly compraSel = computed(() => this.compras().find((c) => c.id === this.compraId()) ?? null);
@@ -99,6 +99,7 @@ export class SupervisionCompras {
   protected readonly compraBorrar = signal<CompraDemo | null>(null);
 
   protected readonly proveedorSel = signal<ProveedorDemo | null>(null);
+  protected readonly proveedorBorrar = signal<ProveedorDemo | null>(null);
   protected readonly proveedorNombre = signal('');
   protected readonly proveedorTipo = signal<TipoDocumento>('RUC');
   protected readonly proveedorDoc = signal('');
@@ -111,7 +112,7 @@ export class SupervisionCompras {
   protected readonly lineasForm = signal<LineaFormulario[]>([]);
 
   protected readonly totalForm = computed(() =>
-    this.lineasForm().reduce((s, l) => s + Number(l.cantidad ?? 0) * Number(l.precio ?? 0), 0),
+    this.lineasForm().reduce((s, l) => s + Number(l.importe ?? 0), 0),
   );
 
   protected readonly proveedoresParaCompra = computed(() => {
@@ -197,10 +198,6 @@ export class SupervisionCompras {
     return this.insumos().find((i) => i.id === id);
   }
 
-  protected subtotal(linea: { cantidad: number | null; precio: number | null }): number {
-    return Number(linea.cantidad ?? 0) * Number(linea.precio ?? 0);
-  }
-
   protected abrirCompra(compra?: CompraDemo): void {
     this.error.set(null);
     this.compraId.set(compra?.id ?? null);
@@ -212,7 +209,7 @@ export class SupervisionCompras {
             clave: this.siguienteClave++,
             insumoId: l.insumoId,
             cantidad: l.cantidad,
-            precio: l.precioUnitario,
+            importe: Number((l.cantidad * l.precioUnitario).toFixed(2)),
           }))
         : [this.lineaVacia()],
     );
@@ -227,7 +224,7 @@ export class SupervisionCompras {
     this.lineasForm.update((lista) => (lista.length <= 1 ? lista : lista.filter((l) => l.clave !== clave)));
   }
 
-  protected cambiarLinea(clave: number, campo: 'insumoId' | 'cantidad' | 'precio', valor: number): void {
+  protected cambiarLinea(clave: number, campo: 'insumoId' | 'cantidad' | 'importe', valor: number): void {
     this.lineasForm.update((lista) => lista.map((l) => (l.clave === clave ? { ...l, [campo]: valor } : l)));
   }
 
@@ -240,11 +237,15 @@ export class SupervisionCompras {
         proveedorId: this.compraProveedorId(),
         lineas: this.lineasForm()
           .filter((l) => l.insumoId)
-          .map((l) => ({
-            insumoId: l.insumoId,
-            cantidad: Number(l.cantidad ?? 0),
-            precioUnitario: Number(l.precio ?? 0),
-          })),
+          .map((l) => {
+            const cantidad = Number(l.cantidad ?? 0);
+            const importe = Number(l.importe ?? 0);
+            return {
+              insumoId: l.insumoId,
+              cantidad,
+              precioUnitario: precioPorUnidad(cantidad, importe),
+            };
+          }),
       })
       .subscribe({
         next: () => {
@@ -396,9 +397,28 @@ export class SupervisionCompras {
       });
   }
 
-  protected alternarProveedor(fila: ProveedorDemo): void {
-    this.proveedoresApi.alternarActivo(fila.id).subscribe({
-      error: (error) => this.error.set(mensajeDeError(error, 'No se pudo cambiar el estado del proveedor.')),
+  protected pedirEliminarProveedor(fila: ProveedorDemo): void {
+    this.proveedorBorrar.set(fila);
+    this.error.set(null);
+    this.dialogo.set('eliminar-proveedor');
+  }
+
+  protected confirmarEliminarProveedor(): void {
+    const fila = this.proveedorBorrar();
+    if (!fila) {
+      return;
+    }
+    this.enviando.set(true);
+    this.error.set(null);
+    this.proveedoresApi.archivar(fila.id).subscribe({
+      next: () => {
+        this.enviando.set(false);
+        this.cerrar();
+      },
+      error: (error) => {
+        this.enviando.set(false);
+        this.error.set(mensajeDeError(error, 'No se pudo eliminar el proveedor.'));
+      },
     });
   }
 
@@ -408,11 +428,19 @@ export class SupervisionCompras {
     this.compraBorrar.set(null);
     this.lineasRecepcion.set([]);
     this.proveedorSel.set(null);
+    this.proveedorBorrar.set(null);
     this.error.set(null);
     this.enviando.set(false);
   }
 
   private lineaVacia(): LineaFormulario {
-    return { clave: this.siguienteClave++, insumoId: 0, cantidad: null, precio: null };
+    return { clave: this.siguienteClave++, insumoId: 0, cantidad: null, importe: null };
   }
+}
+
+function precioPorUnidad(cantidad: number, importe: number): number {
+  if (!(cantidad > 0)) {
+    return 0;
+  }
+  return Number((importe / cantidad).toFixed(4));
 }

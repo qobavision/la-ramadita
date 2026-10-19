@@ -107,4 +107,33 @@ class ProveedorServiceTest {
 				.isInstanceOf(ReglaNegocioException.class)
 				.hasMessageContaining("no está activo");
 	}
+
+	@Test
+	void archivarEsBajaLogicaYNoBorra() {
+		Proveedor proveedor = new Proveedor("Avicola San Pedro", TipoDocumento.RUC, "20123456789", null, null);
+		ReflectionTestUtils.setField(proveedor, "id", 3);
+		when(proveedores.findById(3)).thenReturn(java.util.Optional.of(proveedor));
+
+		ProveedorResponse r = service.archivar(3);
+
+		assertThat(r.archivado()).isTrue();
+		assertThat(r.activo()).isFalse();
+		assertThat(proveedor.isArchivado()).isTrue();
+	}
+
+	@Test
+	void proveedorArchivadoNoSeUsaEnComprasNiSeEdita() {
+		Proveedor archivado = new Proveedor("Avicola San Pedro", TipoDocumento.RUC, "20123456789", null, null);
+		archivado.archivar();
+		ReflectionTestUtils.setField(archivado, "id", 4);
+		when(proveedores.findById(4)).thenReturn(java.util.Optional.of(archivado));
+
+		assertThatThrownBy(() -> service.exigirActivo(4))
+				.isInstanceOf(ReglaNegocioException.class)
+				.hasMessageContaining("no está activo");
+		assertThatThrownBy(() -> service.actualizar(4, new ProveedorRequest("Avicola San Pedro", "RUC",
+				"20123456789", null, null, true)))
+				.isInstanceOf(ReglaNegocioException.class)
+				.hasMessageContaining("eliminado");
+	}
 }

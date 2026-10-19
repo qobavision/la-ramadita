@@ -10,9 +10,9 @@ export const PANEL_SUPERVISION: ConfiguracionPanel = {
   menu: [
     { etiqueta: 'Inicio', icono: 'inicio', ruta: '', disponible: true },
     { etiqueta: 'Turnos y personal', icono: 'reloj', ruta: 'turnos', disponible: true },
-    { etiqueta: 'Operación', icono: 'operacion', ruta: 'operacion', disponible: true },
-    { etiqueta: 'Compras y recepción', icono: 'compras', ruta: 'compras', disponible: true },
+    { etiqueta: 'Menús', icono: 'carta', ruta: 'productos', disponible: true },
     { etiqueta: 'Inventario', icono: 'inventario', ruta: 'inventario', disponible: true },
-    { etiqueta: 'Carta y productos', icono: 'carta', ruta: 'productos', disponible: true },
+    { etiqueta: 'Compras y recepción', icono: 'compras', ruta: 'compras', disponible: true },
+    { etiqueta: 'Zonas', icono: 'mesas', ruta: 'zonas', disponible: true },
   ],
 };

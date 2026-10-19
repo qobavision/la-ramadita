@@ -38,9 +38,9 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.baseUrl}/login`, credenciales).pipe(
       tap((respuesta) => {
         sessionStorage.setItem(AuthService.CLAVE_TOKEN, respuesta.token);
-        this.usuarioActual.set(respuesta.usuario);
+        this.usuarioActual.set(conFuncion(respuesta.usuario));
       }),
-      map((respuesta) => respuesta.usuario),
+      map((respuesta) => conFuncion(respuesta.usuario)),
     );
   }
 
@@ -54,11 +54,16 @@ export class AuthService {
     if (enMemoria) {
       return of(enMemoria);
     }
+    return this.recargarUsuario();
+  }
+
+  /** Vuelve a leer `/auth/me` para tomar una función temporal recién asignada. */
+  recargarUsuario(): Observable<Usuario | null> {
     if (!this.token) {
       return of(null);
     }
     return this.http.get<Usuario>(`${this.baseUrl}/me`).pipe(
-      tap((usuario) => this.usuarioActual.set(usuario)),
+      tap((usuario) => this.usuarioActual.set(conFuncion(usuario))),
       catchError(() => {
         this.limpiarSesion();
         return of(null);
@@ -77,4 +82,8 @@ export class AuthService {
     sessionStorage.removeItem(AuthService.CLAVE_TOKEN);
     this.usuarioActual.set(null);
   }
+}
+
+function conFuncion(usuario: Usuario): Usuario {
+  return { ...usuario, funcionActual: usuario.funcionActual || usuario.rol };
 }

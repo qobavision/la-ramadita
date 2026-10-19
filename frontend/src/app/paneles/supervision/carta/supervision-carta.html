@@ -1,153 +1,453 @@
-<app-encabezado-pagina
-  eyebrow="Supervisión"
-  titulo="Carta y productos"
-  descripcion="Catálogo, precios y carta del día. Un producto agotado no se podrá agregar a pedidos nuevos."
->
-  @if (vista() === 'productos') {
-    <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrirProducto()">
-      <app-icono nombre="mas" [tamano]="16" />
-      Registrar producto
-    </button>
-  }
-</app-encabezado-pagina>
+<app-encabezado-pagina eyebrow="Gestión" titulo="Carta y combos" />
 
 <div class="lr-herramientas">
-  <app-segmento etiqueta="Sección" [opciones]="vistas" [(valor)]="vista" />
-  @if (vista() === 'carta') {
-    <app-segmento etiqueta="Unidad" [opciones]="unidades" [(valor)]="unidad" />
+  <app-segmento etiqueta="Unidad" [opciones]="unidades" [valor]="unidad()" (valorChange)="cambiarUnidad($event)" />
+  @if (unidad() === 'Restaurante') {
+    <div class="lr-herramientas__derecha lr-segmento lr-carta-filtro" role="group" aria-label="Carta">
+      <button type="button" [attr.aria-pressed]="filtro() === 'todos'" (click)="filtro.set('todos')">Todos</button>
+      <select
+        class="form-select"
+        aria-label="Elegir menú"
+        [class.lr-carta-filtro__menu--activo]="filtro() !== 'todos'"
+        [ngModel]="filtro() === 'todos' ? '' : filtro()"
+        (ngModelChange)="elegirMenu($event)"
+      >
+        <option value="" hidden>Menús</option>
+        @for (op of menusCarta; track op.valor) {
+          <option [value]="op.valor">{{ op.etiqueta }}</option>
+        }
+      </select>
+    </div>
+  } @else {
+    <div class="lr-herramientas__derecha lr-segmento lr-carta-filtro" role="group" aria-label="Pollería">
+      <button type="button" [attr.aria-pressed]="filtroPolleria() === 'todos'" (click)="filtroPolleria.set('todos')">Todos</button>
+      <select
+        class="form-select"
+        aria-label="Elegir sección"
+        [class.lr-carta-filtro__menu--activo]="filtroPolleria() !== 'todos'"
+        [ngModel]="filtroPolleria() === 'todos' ? '' : filtroPolleria()"
+        (ngModelChange)="elegirPolleria($event)"
+      >
+        <option value="" hidden>Menús</option>
+        @for (op of menusPolleria; track op.valor) {
+          <option [value]="op.valor">{{ op.etiqueta }}</option>
+        }
+      </select>
+    </div>
   }
 </div>
 
-@if (vista() === 'productos') {
-  <div class="lr-tabla-marco--escritorio">
-    <app-tabla-listado [columnas]="columnasProd" [total]="productos().length">
-      @for (p of productos(); track p.id) {
-        <tr filas>
-          <td><strong>{{ p.nombre }}</strong></td>
-          <td>{{ p.categoria }}</td>
-          <td class="num">{{ p.precio }}</td>
-          <td>{{ p.unidades.join(' · ') }}</td>
-          <td>
-            <span class="lr-estado" [class.lr-estado--activo]="p.activo" [class.lr-estado--inactivo]="!p.activo">
-              {{ p.activo ? 'Activo' : 'Inactivo' }}
-            </span>
-          </td>
-          <td class="num lr-tabla__acciones">
-            <button type="button" class="lr-accion" title="Editar producto" (click)="abrirProducto(p)">
-              <app-icono nombre="editar" [tamano]="16" />
-            </button>
-          </td>
-        </tr>
-      }
-    </app-tabla-listado>
-  </div>
-  <div class="lr-tarjetas-listado">
-    @for (p of productos(); track p.id) {
-      <article class="lr-tarjeta lr-tarjeta-fila">
-        <header>
-          <div>
-            <strong>{{ p.nombre }}</strong>
-            <small>{{ p.categoria }} · {{ p.precio }}</small>
-          </div>
-          <span class="lr-estado" [class.lr-estado--activo]="p.activo">{{ p.activo ? 'Activo' : 'Inactivo' }}</span>
-        </header>
-        <div class="lr-acciones">
-          <button type="button" class="lr-accion" title="Editar producto" (click)="abrirProducto(p)">
-            <app-icono nombre="editar" [tamano]="16" />
-          </button>
-        </div>
-      </article>
-    }
-  </div>
+@if (error() && !dialogo(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
 }
 
-@if (vista() === 'carta') {
-  <p class="lr-nota mb-3">
-    <app-icono nombre="carta" [tamano]="16" />
-    <span>Marcar Agotado es de esta pantalla, no de Operación. El mesero no podrá pedirlo después.</span>
-  </p>
-  <div class="lr-tabla-marco--escritorio">
-    <app-tabla-listado [columnas]="columnasCarta" [total]="cartaFiltrada().length">
-      @for (c of cartaFiltrada(); track c.id) {
-        <tr filas>
-          <td><strong>{{ c.producto }}</strong></td>
-          <td>{{ c.unidad }}</td>
-          <td class="num">{{ c.precio }}</td>
-          <td>
-            <span class="lr-estado" [class.lr-estado--activo]="c.disponibilidad === 'Disponible'" [class.lr-estado--alerta]="c.disponibilidad === 'Agotado'">
-              {{ c.disponibilidad }}
-            </span>
-          </td>
-          <td class="num lr-tabla__acciones">
-            @if (c.disponibilidad === 'Disponible') {
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="marcarAgotado(c.id, true)">Agotado</button>
-            } @else {
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="marcarAgotado(c.id, false)">Disponible</button>
-            }
-          </td>
-        </tr>
-      }
-    </app-tabla-listado>
-  </div>
-  <div class="lr-tarjetas-listado">
-    @for (c of cartaFiltrada(); track c.id) {
-      <article class="lr-tarjeta lr-tarjeta-fila">
-        <header>
-          <div>
-            <strong>{{ c.producto }}</strong>
-            <small>{{ c.unidad }} · {{ c.precio }}</small>
-          </div>
-          <span class="lr-estado" [class.lr-estado--alerta]="c.disponibilidad === 'Agotado'" [class.lr-estado--activo]="c.disponibilidad === 'Disponible'">
-            {{ c.disponibilidad }}
+@if (unidad() === 'Restaurante') {
+  <section class="lr-planes" aria-label="Cartas del restaurante">
+    @if (visible('criollo')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('criollo')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Menú criollo</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('criollo')" [class.lr-estado--inactivo]="!activa('criollo')">
+            {{ activa('criollo') ? 'Activo' : 'Inactivo' }}
           </span>
-        </header>
-        <div class="lr-acciones">
-          @if (c.disponibilidad === 'Disponible') {
-            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="marcarAgotado(c.id, true)">Agotado</button>
-          } @else {
-            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="marcarAgotado(c.id, false)">Disponible</button>
-          }
         </div>
-      </article>
+        <p class="lr-plan__precio">{{ formato(precioMenu('criollo')) }}</p>
+      </header>
+      <div>
+        <h2>Entradas</h2>
+        <ul class="lr-plan__lista">
+          @for (l of lineas('criollo', 'MENU_CRIOLLO_ENTRADA'); track l.detalleId) {
+            <li><span>{{ l.nombre }}</span></li>
+          } @empty {
+            <li class="lr-plan__vacio">Sin entradas</li>
+          }
+        </ul>
+      </div>
+      <div>
+        <h2>Segundos</h2>
+        <ul class="lr-plan__lista">
+          @for (l of lineas('criollo', 'MENU_CRIOLLO_SEGUNDO'); track l.detalleId) {
+            <li><span>{{ l.nombre }}</span></li>
+          } @empty {
+            <li class="lr-plan__vacio">Sin segundos</li>
+          }
+        </ul>
+      </div>
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('criollo')">
+          {{ activa('criollo') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('criollo')">Editar</button>
+      </footer>
+    </article>
     }
-  </div>
+
+    @if (visible('ejecutivo')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('ejecutivo')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Menú ejecutivo</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('ejecutivo')" [class.lr-estado--inactivo]="!activa('ejecutivo')">
+            {{ activa('ejecutivo') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+        <p class="lr-plan__precio">{{ formato(precioMenu('ejecutivo')) }}</p>
+      </header>
+      <ul class="lr-plan__lista">
+        @for (l of lineasPlatos('ejecutivo', 'MENU_EJECUTIVO'); track l.detalleId) {
+          <li><span>{{ l.nombre }}</span></li>
+        } @empty {
+          <li class="lr-plan__vacio">Sin platos</li>
+        }
+      </ul>
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('ejecutivo')">
+          {{ activa('ejecutivo') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('ejecutivo')">Editar</button>
+      </footer>
+    </article>
+    }
+
+    @if (visible('marino')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('marino')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Platos marinos</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('marino')" [class.lr-estado--inactivo]="!activa('marino')">
+            {{ activa('marino') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tablaCarta; context: { $implicit: lineas('marino', 'A_LA_CARTA'), vacio: 'Sin platos' }" />
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('marino')">
+          {{ activa('marino') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('marino')">Editar</button>
+      </footer>
+    </article>
+    }
+
+    @if (visible('bebidas')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('bebidas')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Bebidas</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('bebidas')" [class.lr-estado--inactivo]="!activa('bebidas')">
+            {{ activa('bebidas') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ul class="lr-plan__lista">
+        @for (l of lineas('bebidas', 'BEBIDA'); track l.detalleId) {
+          <li>
+            <span>{{ l.nombre }}</span>
+            <strong>{{ formato(l.precio) }}</strong>
+          </li>
+        } @empty {
+          <li class="lr-plan__vacio">Sin bebidas</li>
+        }
+      </ul>
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('bebidas')">
+          {{ activa('bebidas') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('bebidas')">Editar</button>
+      </footer>
+    </article>
+    }
+  </section>
+} @else {
+  <section class="lr-planes" aria-label="Cartas de pollería">
+    @if (visiblePolleria('brasa')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('brasa')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Platos a la brasa</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('brasa')" [class.lr-estado--inactivo]="!activa('brasa')">
+            {{ activa('brasa') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tablaCarta; context: { $implicit: lineas('brasa', 'BRASA'), vacio: 'Sin platos' }" />
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('brasa')">
+          {{ activa('brasa') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('brasa')">Editar</button>
+      </footer>
+    </article>
+    }
+
+    @if (visiblePolleria('chifa')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('chifa')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Platos chifa</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('chifa')" [class.lr-estado--inactivo]="!activa('chifa')">
+            {{ activa('chifa') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tablaCarta; context: { $implicit: lineas('chifa', 'CHIFA'), vacio: 'Sin platos' }" />
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('chifa')">
+          {{ activa('chifa') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('chifa')">Editar</button>
+      </footer>
+    </article>
+    }
+
+    @if (visiblePolleria('combos')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('combos')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Combos</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('combos')" [class.lr-estado--inactivo]="!activa('combos')">
+            {{ activa('combos') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tablaCarta; context: { $implicit: lineas('combos', 'COMBO'), vacio: 'Sin combos' }" />
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('combos')">
+          {{ activa('combos') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('combos')">Editar</button>
+      </footer>
+    </article>
+    }
+
+    @if (visiblePolleria('bebidasPolleria')) {
+    <article class="lr-tarjeta lr-plan" [class.lr-plan--inactivo]="!activa('bebidasPolleria')">
+      <header>
+        <div class="lr-plan__titulo">
+          <span>Bebidas</span>
+          <span class="lr-estado" [class.lr-estado--activo]="activa('bebidasPolleria')" [class.lr-estado--inactivo]="!activa('bebidasPolleria')">
+            {{ activa('bebidasPolleria') ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </header>
+      <ng-container *ngTemplateOutlet="tablaCarta; context: { $implicit: lineas('bebidasPolleria', 'BEBIDA'), vacio: 'Sin bebidas' }" />
+      <footer class="lr-plan__pie">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="alternar('bebidasPolleria')">
+          {{ activa('bebidasPolleria') ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="abrir('bebidasPolleria')">Editar</button>
+      </footer>
+    </article>
+    }
+  </section>
 }
 
-@if (dialogo()) {
-  <app-dialogo
-    ancho="ancho"
-    eyebrow="Productos"
-    [titulo]="editando() ? 'Editar producto' : 'Registrar producto'"
-    (cerrar)="dialogo.set(false)"
-  >
-    <div class="lr-formulario">
-      <div class="lr-campo--completo">
-        <label class="form-label" for="prod-nom">Producto</label>
-        <input id="prod-nom" class="form-control" [ngModel]="nombre()" (ngModelChange)="nombre.set($event)" />
-      </div>
-      <div>
-        <label class="form-label" for="prod-cat">Categoría</label>
-        <select id="prod-cat" class="form-select" [ngModel]="categoria()" (ngModelChange)="categoria.set($event)">
-          <option value="Platos">Platos</option>
-          <option value="Acompañamientos">Acompañamientos</option>
-          <option value="Bebidas">Bebidas</option>
-        </select>
-      </div>
-      <div>
-        <label class="form-label" for="prod-pre">Precio</label>
-        <input id="prod-pre" class="form-control" [ngModel]="precio()" (ngModelChange)="precio.set($event)" />
-      </div>
-      <div>
-        <label class="form-label" for="prod-est">Estado</label>
-        <select id="prod-est" class="form-select" [ngModel]="activo()" (ngModelChange)="activo.set($event)">
-          <option [ngValue]="true">Activo</option>
-          <option [ngValue]="false">Inactivo</option>
-        </select>
-      </div>
+<ng-template #tablaCarta let-filas let-vacio="vacio">
+  <div class="lr-plan__tabla-marco">
+    <table class="lr-plan__tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th class="num">Precio</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of filas; track l.detalleId) {
+          <tr>
+            <td>{{ l.nombre }}</td>
+            <td class="num">{{ formato(l.precio) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="lr-plan__vacio" colspan="2">{{ vacio }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
+
+@if (dialogo() === 'editar' && edicion(); as tarjeta) {
+  <app-dialogo class="lr-dialogo--editar" eyebrow="Editar" [titulo]="tituloEdicion()" (cerrar)="cerrar()">
+    <div class="lr-menu-modal">
+      @if (error(); as texto) {
+        <p class="lr-menu-modal__error" role="alert">{{ texto }}</p>
+      }
+      @if (tarjeta === 'criollo') {
+        <section>
+          <h2>Entradas</h2>
+          @for (l of borradorEntradas(); track l.clave) {
+            <div class="lr-menu-modal__fila">
+              <select
+                class="form-select"
+                [id]="'entrada-' + l.clave"
+                aria-label="Entrada"
+                [ngModel]="l.productoId"
+                (ngModelChange)="elegir('entradas', l.clave, $event)"
+              >
+                <option [ngValue]="0">Selecciona tu entrada</option>
+                @for (p of opciones(['Entrada'], l.productoId, borradorEntradas()); track p.id) {
+                  <option [ngValue]="p.id">{{ p.nombre }}</option>
+                }
+              </select>
+              <button type="button" class="lr-accion" title="Quitar" (click)="quitarFila('entradas', l.clave)">
+                <app-icono nombre="cerrar" [tamano]="16" />
+              </button>
+            </div>
+          }
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="opciones(['Entrada'], 0, borradorEntradas()).length === 0"
+            (click)="nuevaFila('entradas', 'entrada')"
+          >
+            Agregar entrada
+          </button>
+        </section>
+        <section>
+          <h2>Segundos</h2>
+          @for (l of borradorSegundos(); track l.clave) {
+            <div class="lr-menu-modal__fila">
+              <select
+                class="form-select"
+                [id]="'segundo-' + l.clave"
+                aria-label="Segundo"
+                [ngModel]="l.productoId"
+                (ngModelChange)="elegir('segundos', l.clave, $event)"
+              >
+                <option [ngValue]="0">Selecciona tu segundo</option>
+                @for (p of opciones(['Segundo'], l.productoId, borradorSegundos()); track p.id) {
+                  <option [ngValue]="p.id">{{ p.nombre }}</option>
+                }
+              </select>
+              <button type="button" class="lr-accion" title="Quitar" (click)="quitarFila('segundos', l.clave)">
+                <app-icono nombre="cerrar" [tamano]="16" />
+              </button>
+            </div>
+          }
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="opciones(['Segundo'], 0, borradorSegundos()).length === 0"
+            (click)="nuevaFila('segundos', 'segundo')"
+          >
+            Agregar segundo
+          </button>
+        </section>
+        <section>
+          <h2>Precio</h2>
+          <div class="lr-menu-modal__fila">
+            <input
+              class="form-control lr-menu-modal__precio"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="S/"
+              aria-label="Precio del menú criollo"
+              [ngModel]="borradorPrecio()"
+              (ngModelChange)="precioMenuBorrador($event)"
+            />
+          </div>
+        </section>
+      } @else if (tarjeta === 'ejecutivo') {
+        <section>
+          <h2>Platos</h2>
+          @for (l of borradorLineas(); track l.clave) {
+            <div class="lr-menu-modal__fila">
+              <select
+                class="form-select"
+                [id]="'ejecutivo-' + l.clave"
+                aria-label="Plato ejecutivo"
+                [ngModel]="l.productoId"
+                (ngModelChange)="elegir('lineas', l.clave, $event)"
+              >
+                <option [ngValue]="0">Selecciona tu plato ejecutivo</option>
+                @for (p of opciones(['Plato ejecutivo'], l.productoId, borradorLineas()); track p.id) {
+                  <option [ngValue]="p.id">{{ p.nombre }}</option>
+                }
+              </select>
+              <button type="button" class="lr-accion" title="Quitar" (click)="quitarFila('lineas', l.clave)">
+                <app-icono nombre="cerrar" [tamano]="16" />
+              </button>
+            </div>
+          }
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="opciones(['Plato ejecutivo'], 0, borradorLineas()).length === 0"
+            (click)="nuevaFila('lineas', 'ejecutivo')"
+          >
+            Agregar plato
+          </button>
+        </section>
+        <section>
+          <h2>Precio</h2>
+          <div class="lr-menu-modal__fila">
+            <input
+              class="form-control lr-menu-modal__precio"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="S/"
+              aria-label="Precio del menú ejecutivo"
+              [ngModel]="borradorPrecio()"
+              (ngModelChange)="precioMenuBorrador($event)"
+            />
+          </div>
+        </section>
+      } @else if (editorLineas(); as editor) {
+        <section>
+          <div class="lr-menu-modal__cabecera">
+            <h2>{{ editor.titulo }}</h2>
+            <span>Precio</span>
+            <span class="lr-menu-modal__hueco" aria-hidden="true"></span>
+          </div>
+          @for (l of borradorLineas(); track l.clave) {
+            <div class="lr-menu-modal__fila">
+              <select
+                class="form-select"
+                [id]="editor.prefijo + '-' + l.clave"
+                [attr.aria-label]="editor.titulo"
+                [ngModel]="l.productoId"
+                (ngModelChange)="elegir('lineas', l.clave, $event)"
+              >
+                <option [ngValue]="0">{{ editor.vacio }}</option>
+                @for (p of opciones(editor.categorias, l.productoId, borradorLineas()); track p.id) {
+                  <option [ngValue]="p.id">{{ p.nombre }}</option>
+                }
+              </select>
+              <input
+                class="form-control"
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="S/"
+                [attr.aria-label]="'Precio de ' + (l.nombre || editor.titulo)"
+                [ngModel]="l.precio"
+                (ngModelChange)="precioFila(l.clave, $event)"
+              />
+              <button type="button" class="lr-accion" title="Quitar" (click)="quitarFila('lineas', l.clave)">
+                <app-icono nombre="cerrar" [tamano]="16" />
+              </button>
+            </div>
+          }
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="opciones(editor.categorias, 0, borradorLineas()).length === 0"
+            (click)="nuevaFila('lineas', editor.prefijo)"
+          >
+            {{ editor.agregar }}
+          </button>
+        </section>
+      }
+
       <div class="lr-formulario__pie">
-        <button type="button" class="btn btn-outline-secondary" (click)="dialogo.set(false)">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="guardarProducto()">Guardar</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="enviando()" (click)="aplicar()">Guardar</button>
       </div>
     </div>
   </app-dialogo>
 }
+

@@ -1,0 +1,154 @@
+<app-encabezado-pagina eyebrow="Configuración" titulo="Zonas">
+  <button acciones type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="abrir()">
+    <app-icono nombre="mas" [tamano]="16" />
+    Nueva zona
+  </button>
+</app-encabezado-pagina>
+
+@if (error() && !dialogo(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+@if (zonas().length === 0) {
+  <section class="lr-tarjeta">
+    <app-estado-vacio
+      icono="mesas"
+      titulo="Todavía no hay zonas"
+      descripcion="Registra la primera zona del local: salón, terraza o piso."
+    />
+  </section>
+} @else {
+  <div class="lr-rejilla lr-rejilla--ancha">
+    @for (z of zonas(); track z.id) {
+      <article class="lr-tarjeta lr-zona">
+        <header class="lr-zona__cabecera">
+          <strong>{{ z.nombre }}</strong>
+          <span class="lr-estado" [class.lr-estado--activo]="z.activa" [class.lr-estado--inactivo]="!z.activa">
+            {{ z.activa ? 'Activa' : 'Inactiva' }}
+          </span>
+        </header>
+
+        <div class="lr-zona__bloque">
+          <span>Mesas</span>
+          <div class="lr-zona__mesas">
+            @for (m of previewMesas(z).visibles; track m) {
+              <span class="lr-zona__mesa">{{ m }}</span>
+            }
+            @if (previewMesas(z).extra > 0) {
+              <span class="lr-zona__mesa lr-zona__mesa--mas">+{{ previewMesas(z).extra }} más</span>
+            }
+          </div>
+        </div>
+
+        <div class="lr-zona__recursos">
+          <div class="lr-zona__recurso">
+            <app-icono nombre="caja" [tamano]="16" />
+            <span>Caja ×{{ z.cajas }}</span>
+          </div>
+          <div class="lr-zona__recurso">
+            <app-icono nombre="cocina" [tamano]="16" />
+            <span>Cocina ×{{ z.cocinas }}</span>
+          </div>
+        </div>
+
+        <div class="lr-acciones">
+          <button type="button" class="lr-accion" title="Editar zona" (click)="abrir(z)">
+            <app-icono nombre="editar" [tamano]="16" />
+          </button>
+          <button
+            type="button"
+            class="lr-accion"
+            [title]="tituloActividad(z)"
+            [disabled]="!puedeInactivar(z)"
+            (click)="alternar(z)"
+          >
+            <app-icono nombre="poder" [tamano]="16" />
+          </button>
+          <button
+            type="button"
+            class="lr-accion"
+            [title]="tituloEliminar(z)"
+            [disabled]="!puedeEliminar(z)"
+            (click)="pedirEliminar(z)"
+          >
+            <app-icono nombre="eliminar" [tamano]="16" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (dialogo() === 'form') {
+  <app-dialogo eyebrow="Zonas" [titulo]="zonaEdicion() ? 'Editar zona' : 'Nueva zona'" (cerrar)="cerrar()">
+    <div class="lr-formulario" style="grid-template-columns: 1fr">
+      <div>
+        <label class="form-label" for="zona-nombre">Nombre de zona</label>
+        <input
+          id="zona-nombre"
+          class="form-control"
+          placeholder="Salón principal, Terraza, Segundo piso…"
+          [ngModel]="nombre()"
+          (ngModelChange)="nombre.set($event)"
+        />
+      </div>
+      <div>
+        <label class="form-label" for="zona-mesas">Cantidad de mesas</label>
+        <input
+          id="zona-mesas"
+          class="form-control"
+          type="number"
+          min="0"
+          step="1"
+          [ngModel]="mesas()"
+          (ngModelChange)="mesas.set($event)"
+        />
+      </div>
+      <div>
+        <label class="form-label" for="zona-cajas">Cantidad de cajas</label>
+        <input
+          id="zona-cajas"
+          class="form-control"
+          type="number"
+          min="0"
+          step="1"
+          [ngModel]="cajas()"
+          (ngModelChange)="cajas.set($event)"
+        />
+      </div>
+      <div>
+        <label class="form-label" for="zona-cocinas">Cantidad de cocinas</label>
+        <input
+          id="zona-cocinas"
+          class="form-control"
+          type="number"
+          min="0"
+          step="1"
+          [ngModel]="cocinas()"
+          (ngModelChange)="cocinas.set($event)"
+        />
+      </div>
+      @if (error(); as texto) {
+        <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+      }
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="guardar()">Guardar</button>
+      </div>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar' && zonaBorrar(); as z) {
+  <app-dialogo eyebrow="Zonas" titulo="Eliminar zona" (cerrar)="cerrar()">
+    <p class="mb-3">¿Deseas eliminar esta zona?</p>
+    <p class="mb-3"><strong>{{ z.nombre }}</strong> saldrá del listado. Solo se puede eliminar si no hay mesas ocupadas.</p>
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminar()">Eliminar</button>
+    </div>
+  </app-dialogo>
+}

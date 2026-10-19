@@ -13,7 +13,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.hibernate.annotations.Nationalized;
 
-/** Proveedor. Tabla {@code dbo.proveedores} de V1, extendida en V7. */
+/**
+ * Proveedor. Tabla {@code dbo.proveedores} de V1, extendida en V7 y V11.
+ *
+ * {@code activo} es la desactivación temporal; {@code archivado} es la baja
+ * lógica de Eliminar, sin DELETE físico, para conservar compras.
+ */
 @Entity
 @Table(name = "proveedores")
 public class Proveedor {
@@ -50,6 +55,12 @@ public class Proveedor {
 
 	@Column(name = "activo", nullable = false)
 	private boolean activo = true;
+
+	@Column(name = "archivado", nullable = false)
+	private boolean archivado = false;
+
+	@Column(name = "fecha_archivado")
+	private LocalDateTime fechaArchivado;
 
 	@Column(name = "fecha_creacion", nullable = false, updatable = false)
 	private LocalDateTime fechaCreacion;
@@ -92,6 +103,14 @@ public class Proveedor {
 		this.activo = false;
 	}
 
+	public void archivar() {
+		this.activo = false;
+		this.archivado = true;
+		if (this.fechaArchivado == null) {
+			this.fechaArchivado = LocalDateTime.now(ZoneOffset.UTC);
+		}
+	}
+
 	public Integer getId() {
 		return id;
 	}
@@ -122,6 +141,10 @@ public class Proveedor {
 
 	public boolean isActivo() {
 		return activo;
+	}
+
+	public boolean isArchivado() {
+		return archivado;
 	}
 
 	public LocalDateTime getFechaCreacion() {

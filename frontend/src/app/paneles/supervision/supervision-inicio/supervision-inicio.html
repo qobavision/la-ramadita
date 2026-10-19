@@ -1,47 +1,197 @@
-<app-encabezado-pagina
-  eyebrow="Supervisión"
-  titulo="Operación del día"
-  descripcion="Seguimiento de la atención, las compras y el inventario. Los números son de demostración."
->
-  <span acciones class="lr-pildora">{{ turno().unidad }} · {{ turno().estado }}</span>
-</app-encabezado-pagina>
+<app-encabezado-pagina eyebrow="Dashboard" titulo="Operaciones del día" />
 
-@if (turno().alerta; as alerta) {
-  <p class="lr-nota mb-3" role="status">
-    <app-icono nombre="alerta" [tamano]="16" />
-    <span>{{ alerta }}</span>
-  </p>
-}
-
-<section class="lr-rejilla" aria-label="Indicadores">
+<section class="lr-rejilla lr-rejilla--dashboard" aria-label="Indicadores">
   @for (kpi of indicadores(); track kpi.etiqueta) {
     <article class="lr-kpi lr-kpi--lleno">
       <span>{{ kpi.etiqueta }}</span>
       <strong>{{ kpi.valor }}</strong>
-      <small>{{ kpi.nota }}</small>
+      @if (kpi.nota) {
+        <small>{{ kpi.nota }}</small>
+      }
       <app-icono [nombre]="kpi.icono" [tamano]="18" />
     </article>
   }
 </section>
 
-<div class="lr-leyenda mt-3">
-  <span>Caja</span>
-  <span class="lr-estado" [class.lr-estado--activo]="turno().caja === 'Abierta'" [class.lr-estado--abierta]="turno().caja === 'Pendiente de cierre'">
-    {{ turno().caja }}
-  </span>
-  <span>Turno</span>
-  <span class="lr-estado {{ claseTurno(turno().estado) }}">{{ turno().estado }}</span>
+<h2 class="lr-seccion">Cajas</h2>
+@if (cajas().length === 0) {
+  <app-tabla-listado
+    [columnas]="columnasCajas"
+    [total]="0"
+    vacioIcono="caja"
+    vacioTitulo="No hay cajas abiertas"
+    vacioDescripcion="Cuando inicie un turno, las cajas aparecerán aquí."
+  />
+} @else {
+<div class="lr-tabla-marco--escritorio">
+  <app-tabla-listado [columnas]="columnasCajas" [total]="cajas().length">
+    @for (c of cajas(); track c.id) {
+      <tr filas>
+        <td><strong>{{ c.nombre }}</strong></td>
+        <td>{{ c.zona }}</td>
+        <td>{{ c.responsable }}</td>
+        <td>{{ c.horaApertura }}</td>
+        <td>
+          <span class="lr-estado" [class.lr-estado--activo]="c.estado === 'Abierta'" [class.lr-estado--inactivo]="c.estado !== 'Abierta'">
+            {{ c.estado }}
+          </span>
+        </td>
+        <td class="num">{{ formatoSoles(c.monto) }}</td>
+      </tr>
+    }
+  </app-tabla-listado>
 </div>
-
-<h2 class="lr-seccion">Áreas a supervisar</h2>
-<section class="lr-rejilla lr-rejilla--ancha">
-  @for (m of modulos; track m.ruta) {
-    <app-tarjeta-modulo
-      [titulo]="m.etiqueta"
-      [descripcion]="descripcionDe[m.ruta] ?? 'Acceso de supervisión.'"
-      [icono]="m.icono"
-      [ruta]="m.ruta"
-      [disponible]="true"
-    />
+<div class="lr-tarjetas-listado">
+  @for (c of cajas(); track c.id) {
+    <article class="lr-tarjeta lr-tarjeta-fila">
+      <header>
+        <div>
+          <strong>{{ c.nombre }}</strong>
+          <small>{{ c.zona }}</small>
+        </div>
+        <span class="lr-estado" [class.lr-estado--activo]="c.estado === 'Abierta'">{{ c.estado }}</span>
+      </header>
+      <dl>
+        <dt>Responsable</dt>
+        <dd>{{ c.responsable }}</dd>
+        <dt>Apertura</dt>
+        <dd>{{ c.horaApertura }}</dd>
+        <dt>Monto cobrado</dt>
+        <dd>{{ formatoSoles(c.monto) }}</dd>
+      </dl>
+    </article>
   }
-</section>
+</div>
+}
+
+<h2 class="lr-seccion">Cocina</h2>
+@if (cocina().length === 0) {
+  <app-tabla-listado
+    [columnas]="columnasCocina"
+    [total]="0"
+    vacioIcono="cocina"
+    vacioTitulo="No hay pedidos en cocina"
+    vacioDescripcion="Los pedidos en preparación aparecerán aquí."
+  />
+} @else {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasCocina" [total]="cocina().length">
+      @for (p of cocina(); track p.id) {
+        <tr filas>
+          <td><strong>{{ p.id }}</strong></td>
+          <td>{{ p.origen }}</td>
+          <td>{{ p.mesero }}</td>
+          <td>{{ resumenProductos(p.productos) }}</td>
+          <td>
+            <span class="lr-estado {{ claseEstadoCocinaInicio(p.estado) }}">{{ p.estado }}</span>
+          </td>
+          <td>{{ p.tiempo }}</td>
+          <td class="num lr-tabla__acciones">
+            <div class="lr-acciones">
+              <button type="button" class="lr-accion" title="Ver contenido" (click)="abrirDetalle(p)">
+                <app-icono nombre="ver" [tamano]="16" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (p of cocina(); track p.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ p.id }}</strong>
+            <small>{{ p.origen }}</small>
+          </div>
+          <span class="lr-estado {{ claseEstadoCocinaInicio(p.estado) }}">{{ p.estado }}</span>
+        </header>
+        <dl>
+          <dt>Mesero</dt>
+          <dd>{{ p.mesero }}</dd>
+          <dt>Contenido</dt>
+          <dd>{{ resumenProductos(p.productos) }}</dd>
+          <dt>Tiempo</dt>
+          <dd>{{ p.tiempo }}</dd>
+        </dl>
+        <div class="lr-acciones">
+          <button type="button" class="lr-accion" title="Ver contenido" (click)="abrirDetalle(p)">
+            <app-icono nombre="ver" [tamano]="16" />
+          </button>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+<h2 class="lr-seccion">Mesas y atención</h2>
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Mesas" [opciones]="filtrosMesas" [valor]="filtroMesas()" (valorChange)="filtroMesas.set($event ?? 'Todas')" />
+</div>
+@if (vacioMesas()) {
+  <app-tabla-listado
+    [columnas]="columnasMesas"
+    [total]="0"
+    vacioIcono="mesas"
+    [vacioTitulo]="mesas().length === 0 ? 'No hay mesas registradas' : 'No hay mesas en este filtro'"
+    [vacioDescripcion]="mesas().length === 0 ? 'Las mesas aparecerán cuando registres zonas con cantidad de mesas.' : 'Prueba con Ocupadas, Libres o Todas.'"
+  />
+} @else {
+  <div class="lr-tabla-marco--escritorio">
+    <app-tabla-listado [columnas]="columnasMesas" [total]="mesasVisibles().length">
+      @for (m of mesasVisibles(); track m.id) {
+        <tr filas>
+          <td><strong>{{ m.nombre }}</strong></td>
+          <td>{{ m.zona }}</td>
+          <td>{{ textoOpcional(m.mesero) }}</td>
+          <td>{{ textoOpcional(m.pedido) }}</td>
+          <td>{{ textoOpcional(m.tiempo) }}</td>
+          <td class="num">{{ totalMesa(m) }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+  </div>
+  <div class="lr-tarjetas-listado">
+    @for (m of mesasVisibles(); track m.id) {
+      <article class="lr-tarjeta lr-tarjeta-fila">
+        <header>
+          <div>
+            <strong>{{ m.nombre }}</strong>
+            <small>{{ m.zona }}</small>
+          </div>
+        </header>
+        <dl>
+          <dt>Mesero</dt>
+          <dd>{{ textoOpcional(m.mesero) }}</dd>
+          <dt>Pedido</dt>
+          <dd>{{ textoOpcional(m.pedido) }}</dd>
+          <dt>Tiempo</dt>
+          <dd>{{ textoOpcional(m.tiempo) }}</dd>
+          <dt>Total actual</dt>
+          <dd>{{ totalMesa(m) }}</dd>
+        </dl>
+      </article>
+    }
+  </div>
+}
+
+@if (pedidoDetalle(); as p) {
+  <app-dialogo eyebrow="Cocina" [titulo]="p.id" [descripcion]="p.origen + ' · ' + p.mesero" (cerrar)="cerrarDetalle()">
+    <p class="mb-3">
+      <span class="lr-estado {{ claseEstadoCocinaInicio(p.estado) }}">{{ p.estado }}</span>
+    </p>
+    @for (item of p.productos; track item) {
+      <article class="lr-tarjeta lr-tarjeta-fila mb-2">
+        <header>
+          <div>
+            <strong>{{ item }}</strong>
+          </div>
+        </header>
+      </article>
+    }
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrarDetalle()">Cerrar</button>
+    </div>
+  </app-dialogo>
+}

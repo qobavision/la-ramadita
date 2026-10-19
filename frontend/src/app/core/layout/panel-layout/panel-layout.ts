@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { interval } from 'rxjs';
 import { Rol, ROL_ETIQUETA } from '../../../auth/auth.models';
 import { AuthService } from '../../../auth/auth.service';
-import { rutaPanelDe } from '../../../auth/paneles';
+import { puedeEntrarAlPanel, rutaPanelDe } from '../../../auth/paneles';
 import { Icono } from '../../../shared/ui/icono/icono';
 import { ConfiguracionPanel } from './panel.config';
 
@@ -40,10 +42,41 @@ export class PanelLayout {
 
   protected readonly usuario = this.auth.usuario;
 
-  /** Ruta del panel propio del usuario cuando está visitando un panel de otro rol. */
+  constructor() {
+    this.auth.recargarUsuario().subscribe({ error: () => undefined });
+    interval(20_000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.auth.recargarUsuario().subscribe({ error: () => undefined }));
+  }
+
+  /** Ruta del panel permanente cuando está cubriendo otra función. */
   protected readonly panelPropio = computed(() => {
     const u = this.usuario();
-    return u && !this.rolesPanel.includes(u.rol) ? rutaPanelDe(u.rol) : null;
+    if (!u || this.rolesPanel.includes(u.rol)) {
+      return null;
+    }
+    return rutaPanelDe(u.rol);
+  });
+
+  /** Panel de la función temporal si no está ya en él. */
+  protected readonly panelAsignado = computed(() => {
+    const u = this.usuario();
+    if (!u) {
+      return null;
+    }
+    const funcion = u.funcionActual;
+    if (!funcion || funcion === u.rol || this.rolesPanel.includes(funcion)) {
+      return null;
+    }
+    if (!puedeEntrarAlPanel(u, [funcion])) {
+      return null;
+    }
+    return rutaPanelDe(funcion);
+  });
+
+  protected readonly etiquetaFuncion = computed(() => {
+    const u = this.usuario();
+    return u?.funcionActual && u.funcionActual !== u.rol ? ROL_ETIQUETA[u.funcionActual] : null;
   });
 
   protected readonly nombreCompleto = computed(() => {

@@ -3,7 +3,7 @@ import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs';
 import { Rol } from '../../auth/auth.models';
 import { AuthService } from '../../auth/auth.service';
-import { puedeEntrarAlPanel, rutaPanelDe } from '../../auth/paneles';
+import { puedeEntrarAlPanel, rutaInicioDe } from '../../auth/paneles';
 
 /**
  * Crea un guard que exige sesión iniciada **y** acceso al panel según el rol.
@@ -24,15 +24,15 @@ export function rolGuard(rolesPermitidos: readonly Rol[]): CanActivateFn & CanAc
     const auth = inject(AuthService);
     const router = inject(Router);
 
-    return auth.restaurarSesion().pipe(
+    return auth.recargarUsuario().pipe(
       map((usuario) => {
         if (!usuario) {
           return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
         }
-        if (puedeEntrarAlPanel(usuario.rol, rolesPermitidos)) {
+        if (puedeEntrarAlPanel(usuario, rolesPermitidos)) {
           return true;
         }
-        return router.parseUrl(rutaPanelDe(usuario.rol));
+        return router.parseUrl(rutaInicioDe(usuario));
       }),
     );
   };

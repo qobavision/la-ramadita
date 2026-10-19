@@ -474,6 +474,10 @@ ADMINISTRADOR puede acceder a los paneles de los demás roles con su misma sesi�
 
 
 
+La función actual del turno (MESERO, COCINA, CAJA; SUPERVISOR solo si la asigna un ADMINISTRADOR) no cambia el rol permanente ni el JWT. `/auth/me` incluye `funcionActual` y esa función otorga el panel operativo correspondiente, además del panel del rol permanente.
+
+
+
 Las contraseñas deberán almacenarse mediante hash seguro.
 
 
@@ -491,6 +495,18 @@ Tablas de M01 a partir de V3:
 
 
 Inactivar un empleado inactiva su usuario en la misma operación. Archivar un empleado archiva también su usuario. Reactivar el empleado no reactiva la cuenta. Último acceso se actualiza solo tras un login exitoso.
+
+
+
+Tablas de turnos (V9, V12 a V14):
+
+
+
+\- `dbo.horario_operacion`: horario base por unidad (Restaurante 07:00-16:00, Pollería 16:00-01:00, zona `America/Lima`).
+
+\- `dbo.turnos`: `usuario_apertura_id` puede ser nulo (apertura automática); el cierre registra `usuario_cierre_id`.
+
+\- `dbo.turno_asistencia`: una fila por turno y usuario; `funcion_temporal` puede ser MESERO, COCINA, CAJA o SUPERVISOR.
 
 
 

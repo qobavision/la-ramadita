@@ -1,5 +1,5 @@
 <app-encabezado-pagina
-  eyebrow="Supervisión"
+  eyebrow="Gestión"
   titulo="Compras y recepción"
   descripcion="La compra no sube el stock. El inventario aumenta al confirmar cada recepción."
 >
@@ -188,8 +188,8 @@
                 <button type="button" class="lr-accion" title="Editar proveedor" (click)="abrirProveedor(p)">
                   <app-icono nombre="editar" [tamano]="16" />
                 </button>
-                <button type="button" class="lr-accion" [title]="p.activo ? 'Inactivar' : 'Activar'" (click)="alternarProveedor(p)">
-                  <app-icono nombre="poder" [tamano]="16" />
+                <button type="button" class="lr-accion" title="Eliminar proveedor" (click)="pedirEliminarProveedor(p)">
+                  <app-icono nombre="eliminar" [tamano]="16" />
                 </button>
               </div>
             </td>
@@ -217,8 +217,8 @@
             <button type="button" class="lr-accion" title="Editar proveedor" (click)="abrirProveedor(p)">
               <app-icono nombre="editar" [tamano]="16" />
             </button>
-            <button type="button" class="lr-accion" [title]="p.activo ? 'Inactivar' : 'Activar'" (click)="alternarProveedor(p)">
-              <app-icono nombre="poder" [tamano]="16" />
+            <button type="button" class="lr-accion" title="Eliminar proveedor" (click)="pedirEliminarProveedor(p)">
+              <app-icono nombre="eliminar" [tamano]="16" />
             </button>
           </div>
         </article>
@@ -237,7 +237,7 @@
         <header>
           <div>
             <strong>{{ l.insumo }}</strong>
-            <small>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }} · {{ soles(l.precioUnitario) }} c/u</small>
+            <small>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }} · {{ soles(l.cantidad * l.precioUnitario) }}</small>
           </div>
         </header>
         <dl>
@@ -245,9 +245,7 @@
           <dd>{{ cant(l.cantidad) }} {{ unidadDe(l.unidad) }}</dd>
           <dt>Recibido</dt>
           <dd>{{ cant(l.recibido) }} {{ unidadDe(l.unidad) }}</dd>
-          <dt>Precio</dt>
-          <dd>{{ soles(l.precioUnitario) }} c/u</dd>
-          <dt>Subtotal</dt>
+          <dt>Importe</dt>
           <dd>{{ soles(l.cantidad * l.precioUnitario) }}</dd>
         </dl>
       </article>
@@ -264,7 +262,7 @@
     ancho="ancho"
     eyebrow="Compras"
     [titulo]="compraId() ? 'Editar compra' : 'Registrar compra'"
-    descripcion="El stock no cambia hasta recibir. La unidad sale del insumo."
+    descripcion="La unidad sale del insumo. El stock sube al recibir."
     (cerrar)="cerrar()"
   >
     @if (error(); as texto) {
@@ -292,12 +290,17 @@
       </div>
     </div>
 
-    <h2 class="lr-seccion">Detalle de compra</h2>
+    <h2 class="lr-seccion">Insumos</h2>
     @for (l of lineasForm(); track l.clave) {
-      <div class="lr-formulario mb-2">
-        <div>
-          <label class="form-label">Insumo</label>
-          <select class="form-select" [ngModel]="l.insumoId" (ngModelChange)="cambiarLinea(l.clave, 'insumoId', $event)">
+      <div class="lr-receta-linea">
+        <div class="lr-receta-linea__insumo">
+          <label class="form-label" [attr.for]="'comp-ins-' + l.clave">Insumo</label>
+          <select
+            class="form-select"
+            [id]="'comp-ins-' + l.clave"
+            [ngModel]="l.insumoId"
+            (ngModelChange)="cambiarLinea(l.clave, 'insumoId', $event)"
+          >
             <option [ngValue]="0">Selecciona</option>
             @for (i of insumos(); track i.id) {
               <option [ngValue]="i.id">{{ i.nombre }}</option>
@@ -305,22 +308,33 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Unidad</label>
-          <input class="form-control" [value]="insumoDe(l.insumoId)?.unidad ?? '—'" disabled />
+          <label class="form-label" [attr.for]="'comp-cant-' + l.clave">
+            Cantidad{{ insumoDe(l.insumoId) ? ' (' + unidadDe(insumoDe(l.insumoId)!.unidad) + ')' : '' }}
+          </label>
+          <input
+            class="form-control"
+            [id]="'comp-cant-' + l.clave"
+            type="number"
+            min="0"
+            step="any"
+            [ngModel]="l.cantidad"
+            (ngModelChange)="cambiarLinea(l.clave, 'cantidad', $event)"
+          />
         </div>
         <div>
-          <label class="form-label">Cantidad</label>
-          <input class="form-control" type="number" min="0" step="any" [ngModel]="l.cantidad" (ngModelChange)="cambiarLinea(l.clave, 'cantidad', $event)" />
+          <label class="form-label" [attr.for]="'comp-imp-' + l.clave">Importe</label>
+          <input
+            class="form-control"
+            [id]="'comp-imp-' + l.clave"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="S/"
+            [ngModel]="l.importe"
+            (ngModelChange)="cambiarLinea(l.clave, 'importe', $event)"
+          />
         </div>
-        <div>
-          <label class="form-label">Precio unitario</label>
-          <input class="form-control" type="number" min="0" step="any" [ngModel]="l.precio" (ngModelChange)="cambiarLinea(l.clave, 'precio', $event)" />
-        </div>
-        <div>
-          <label class="form-label">Subtotal</label>
-          <input class="form-control" [value]="soles(subtotal(l))" disabled />
-        </div>
-        <div class="d-flex align-items-end">
+        <div class="lr-receta-linea__quitar">
           <button type="button" class="lr-accion" title="Quitar insumo" (click)="quitarLinea(l.clave)">
             <app-icono nombre="cerrar" [tamano]="16" />
           </button>
@@ -328,7 +342,7 @@
       </div>
     }
     <button type="button" class="btn btn-outline-secondary mb-3" (click)="agregarLinea()">+ Agregar insumo</button>
-    <p class="fw-bold">TOTAL DE COMPRA {{ soles(totalForm()) }}</p>
+    <p class="fw-bold">TOTAL {{ soles(totalForm()) }}</p>
     <div class="lr-formulario__pie">
       <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
       <button type="button" class="btn btn-primary" (click)="guardarCompra()" [disabled]="enviando()">Guardar</button>
@@ -411,6 +425,20 @@
     <div class="lr-formulario__pie">
       <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
       <button type="button" class="btn btn-primary" (click)="confirmarEliminarCompra()" [disabled]="enviando()">Eliminar</button>
+    </div>
+  </app-dialogo>
+}
+
+@if (dialogo() === 'eliminar-proveedor' && proveedorBorrar(); as p) {
+  <app-dialogo eyebrow="Proveedores" titulo="Eliminar proveedor" (cerrar)="cerrar()">
+    @if (error(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <p class="mb-3">¿Deseas eliminar este proveedor?</p>
+    <p class="mb-3"><strong>{{ p.nombre }}</strong> saldrá del listado. Las compras ya registradas se conservan.</p>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="confirmarEliminarProveedor()" [disabled]="enviando()">Eliminar</button>
     </div>
   </app-dialogo>
 }

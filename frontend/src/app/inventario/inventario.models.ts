@@ -31,6 +31,7 @@ export interface ProveedorApi {
   celular: string | null;
   personaContacto: string | null;
   activo: boolean;
+  archivado?: boolean;
 }
 
 export interface CompraDetalleApi {
@@ -100,6 +101,28 @@ export function unidadHaciaApi(unidad: UnidadInsumo): string {
     default:
       return 'UNIDAD';
   }
+}
+
+const FACTORES_UNIDAD: Record<string, number> = {
+  'Kilogramo (kg)>Gramo (g)': 1000,
+  'Gramo (g)>Kilogramo (kg)': 0.001,
+  'Litro (L)>Mililitro (ml)': 1000,
+  'Mililitro (ml)>Litro (L)': 0.001,
+};
+
+export function factorConversionUnidad(desde: UnidadInsumo, hacia: UnidadInsumo): number | null {
+  if (desde === hacia) {
+    return 1;
+  }
+  return FACTORES_UNIDAD[`${desde}>${hacia}`] ?? null;
+}
+
+export function convertirCantidadUnidad(cantidad: number, factor: number): number {
+  return Math.round(cantidad * factor * 1000) / 1000;
+}
+
+export function mensajeUnidadIncompatible(desde: UnidadInsumo, hacia: UnidadInsumo): string {
+  return `No se puede cambiar de ${desde} a ${hacia}: no hay conversión entre esas unidades. Quita el insumo de las recetas, elimínalo y créalo de nuevo con la unidad correcta.`;
 }
 
 export function estadoStockDesdeApi(estado: InsumoApi['estado']): EstadoStock {

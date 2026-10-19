@@ -3,9 +3,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { mensajeDeError } from '../../core/errores/api-error';
-import { Rol } from '../auth.models';
+import { Usuario } from '../auth.models';
 import { AuthService } from '../auth.service';
-import { rutaPanelDe } from '../paneles';
+import { rutaInicioDe } from '../paneles';
 
 @Component({
   selector: 'app-login',
@@ -63,7 +63,7 @@ export class Login {
       .login({ username: username.trim(), password })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (usuario) => void this.router.navigateByUrl(this.destinoTrasLogin(usuario.rol)),
+        next: (usuario) => void this.router.navigateByUrl(this.destinoTrasLogin(usuario)),
         error: (err: unknown) => {
           this.enviando.set(false);
           this.error.set(mensajeDeError(err, 'No se pudo iniciar sesión. Inténtalo nuevamente.'));
@@ -76,9 +76,9 @@ export class Login {
    * si no hay ninguna, va al panel de su rol. Si la ruta pedida pertenece a
    * otro panel, el guard de rol lo redirigirá a su propio panel.
    */
-  private destinoTrasLogin(rol: Rol): string {
+  private destinoTrasLogin(usuario: Usuario): string {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
     const esInterna = !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login');
-    return esInterna ? returnUrl : rutaPanelDe(rol);
+    return esInterna ? returnUrl : rutaInicioDe(usuario);
   }
 }

@@ -6,9 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
 
-	List<Proveedor> findAllByOrderByNombreRazonSocialAsc();
+	List<Proveedor> findByArchivadoFalseOrderByNombreRazonSocialAsc();
 
-	List<Proveedor> findByActivoTrueOrderByNombreRazonSocialAsc();
+	List<Proveedor> findByActivoTrueAndArchivadoFalseOrderByNombreRazonSocialAsc();
 
 	boolean existsByDocumento(String documento);
 

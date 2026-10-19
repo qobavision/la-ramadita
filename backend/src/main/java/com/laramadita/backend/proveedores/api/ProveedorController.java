@@ -54,4 +54,9 @@ public class ProveedorController {
 	public ProveedorResponse alternarActivo(@PathVariable Integer id) {
 		return service.alternarActivo(id);
 	}
+
+	@PatchMapping("/{id}/archivar")
+	public ProveedorResponse archivar(@PathVariable Integer id) {
+		return service.archivar(id);
+	}
 }

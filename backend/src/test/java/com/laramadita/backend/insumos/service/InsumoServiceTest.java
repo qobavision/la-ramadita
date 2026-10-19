@@ -3,6 +3,7 @@ package com.laramadita.backend.insumos.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -112,6 +113,57 @@ class InsumoServiceTest {
 		assertThat(r.stockActual()).isEqualByComparingTo("10");
 		assertThat(r.stockMinimo()).isEqualByComparingTo("5");
 		assertThat(r.nombre()).isEqualTo("Pollo Entero");
+		verify(insumos, never()).convertirCantidadesDeReceta(any(), any());
+	}
+
+	@Test
+	void convierteKilogramoAGramoEnStockMinimoYRecetas() {
+		Insumo existente = new Insumo("Fideo", UnidadMedida.KILOGRAMO, new BigDecimal("50"),
+				new BigDecimal("5"));
+		ReflectionTestUtils.setField(existente, "id", 4);
+		when(insumos.findById(4)).thenReturn(Optional.of(existente));
+		when(insumos.minimaCantidadAsociada(4)).thenReturn(new BigDecimal("0.10"));
+
+		InsumoResponse r = service.actualizar(4,
+				new InsumoActualizarRequest("fideo", "GRAMO", new BigDecimal("5000")));
+
+		assertThat(existente.getUnidadMedida()).isEqualTo(UnidadMedida.GRAMO);
+		assertThat(r.stockActual()).isEqualByComparingTo("50000");
+		assertThat(r.stockMinimo()).isEqualByComparingTo("5000");
+		assertThat(r.estado()).isEqualTo(EstadoStock.NORMAL);
+		verify(insumos).save(existente);
+		verify(insumos).convertirCantidadesDeReceta(eq(4), eq(new BigDecimal("1000")));
+		verify(insumos).convertirCantidadesDeCompra(eq(4), eq(new BigDecimal("1000")), eq(new BigDecimal("1000")),
+				eq(new BigDecimal("1000")));
+	}
+
+	@Test
+	void rechazaCambioDeUnidadAKilogramo() {
+		Insumo existente = new Insumo("Lechuga", UnidadMedida.UNIDAD, new BigDecimal("10"),
+				new BigDecimal("3"));
+		ReflectionTestUtils.setField(existente, "id", 4);
+		when(insumos.findById(4)).thenReturn(Optional.of(existente));
+
+		assertThatThrownBy(() -> service.actualizar(4,
+				new InsumoActualizarRequest("lechuga", "KILOGRAMO", new BigDecimal("3"))))
+				.isInstanceOf(ReglaNegocioException.class)
+				.hasMessageContaining("no hay conversión")
+				.hasMessageContaining("elimínalo");
+		assertThat(existente.getUnidadMedida()).isEqualTo(UnidadMedida.UNIDAD);
+		verify(insumos, never()).convertirCantidadesDeReceta(any(), any());
+	}
+
+	@Test
+	void rechazaCambioDeGramoALitro() {
+		Insumo existente = new Insumo("Aceite", UnidadMedida.GRAMO, new BigDecimal("100"),
+				new BigDecimal("50"));
+		ReflectionTestUtils.setField(existente, "id", 4);
+		when(insumos.findById(4)).thenReturn(Optional.of(existente));
+
+		assertThatThrownBy(() -> service.actualizar(4,
+				new InsumoActualizarRequest("aceite", "LITRO", new BigDecimal("50"))))
+				.isInstanceOf(ReglaNegocioException.class)
+				.hasMessageContaining("no hay conversión");
 	}
 
 	@Test

@@ -72,7 +72,26 @@ public class InsumoService {
 		String nombre = exigirNombre(request.nombre());
 		UnidadMedida unidad = exigirUnidad(request.unidadMedida());
 		exigirNombreDisponible(nombre, id);
-		insumo.actualizar(nombre, unidad, request.stockMinimo());
+		BigDecimal stockMinimo = request.stockMinimo();
+		if (unidad != insumo.getUnidadMedida()) {
+			BigDecimal factor = insumo.getUnidadMedida().factorHacia(unidad)
+					.orElseThrow(() -> new ReglaNegocioException(mensajeSinConversion(insumo.getUnidadMedida(), unidad)));
+			exigirQueLasCantidadesNoQuedenEnCero(id, factor);
+			BigDecimal minimoAnterior = insumo.getStockMinimo();
+			insumo.aplicarConversionDeStock(factor);
+			BigDecimal minimoPedido = stockMinimo == null ? minimoAnterior : stockMinimo;
+			stockMinimo = minimoPedido.compareTo(minimoAnterior) == 0
+					? Insumo.convertirCantidad(minimoAnterior, factor)
+					: minimoPedido;
+			insumo.actualizar(nombre, unidad, stockMinimo);
+			insumos.save(insumo);
+			insumos.convertirCantidadesDeReceta(id, factor);
+			insumos.convertirCantidadesDeCompra(id, factor, factor, factor);
+			insumos.convertirCantidadesDeRecepcion(id, factor);
+			insumos.convertirCantidadesDeMovimiento(id, factor, factor, factor);
+		} else {
+			insumo.actualizar(nombre, unidad, stockMinimo);
+		}
 		return InsumoResponse.de(insumo);
 	}
 
@@ -151,6 +170,22 @@ public class InsumoService {
 			throw new ReglaNegocioException("Ingresa el nombre del insumo");
 		}
 		return normalizado;
+	}
+
+	private void exigirQueLasCantidadesNoQuedenEnCero(Integer insumoId, BigDecimal factor) {
+		BigDecimal minima = insumos.minimaCantidadAsociada(insumoId);
+		if (minima == null) {
+			return;
+		}
+		if (Insumo.convertirCantidad(minima, factor).compareTo(BigDecimal.ZERO) <= 0) {
+			throw new ReglaNegocioException(
+					"La conversión dejaría cantidades en cero. Usa una unidad más pequeña o corrige las recetas primero.");
+		}
+	}
+
+	private static String mensajeSinConversion(UnidadMedida origen, UnidadMedida destino) {
+		return "No se puede cambiar de " + origen.etiqueta() + " a " + destino.etiqueta()
+				+ ": no hay conversión entre esas unidades. Quita el insumo de las recetas, elimínalo y créalo de nuevo con la unidad correcta.";
 	}
 
 	private static UnidadMedida exigirUnidad(String unidad) {

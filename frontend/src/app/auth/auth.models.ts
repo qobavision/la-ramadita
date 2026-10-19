@@ -24,6 +24,8 @@ export interface Usuario {
   rol: Rol;
   /** Valor tal como está en base de datos. Solo para mostrar. */
   rolNombre: string;
+  /** Función de este turno (rol permanente o asignación temporal). */
+  funcionActual: Rol;
   activo: boolean;
   fechaCreacion: string;
 }

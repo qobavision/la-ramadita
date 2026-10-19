@@ -1,9 +1,9 @@
-import { Rol } from '../../../auth/auth.models';
+import { Rol, ROL_ETIQUETA } from '../../../auth/auth.models';
 
 export type UnidadNegocio = 'Restaurante' | 'Pollería';
 export type EstadoTurno = 'ACTIVO' | 'EN CIERRE' | 'CERRADO';
 export type EstadoCaja = 'Abierta' | 'Pendiente de cierre' | 'Cerrada';
-export type RolTemporal = 'MESERO' | 'COCINA' | 'CAJA';
+export type RolTemporal = 'SUPERVISOR' | 'MESERO' | 'COCINA' | 'CAJA';
 export type EstadoMesaOp = 'Libre' | 'Ocupada';
 export type EstadoPedido = 'En curso' | 'Pendiente cocina' | 'Preparado' | 'Modificado' | 'Cancelado';
 export type EstadoCompra = 'Pendiente' | 'Parcial' | 'Recibida';
@@ -12,7 +12,6 @@ export type EstadoStock = 'NORMAL' | 'STOCK BAJO' | 'AGOTADO';
 export type TipoDocumento = 'RUC' | 'DNI';
 export type UnidadInsumo = 'Unidad' | 'Kilogramo (kg)' | 'Gramo (g)' | 'Litro (L)' | 'Mililitro (ml)';
 export type TipoMovimiento = 'ENTRADA' | 'CONSUMO' | 'AJUSTE';
-export type DisponibilidadCarta = 'Disponible' | 'Agotado';
 
 export const UNIDADES_INSUMO: readonly UnidadInsumo[] = [
   'Unidad',
@@ -23,6 +22,7 @@ export const UNIDADES_INSUMO: readonly UnidadInsumo[] = [
 ];
 
 export const ROLES_TEMPORALES: readonly RolTemporal[] = ['MESERO', 'COCINA', 'CAJA'];
+export const FUNCIONES_ADMINISTRADOR: readonly RolTemporal[] = ['SUPERVISOR', 'MESERO', 'COCINA', 'CAJA'];
 
 export interface HorarioBase {
   unidad: UnidadNegocio;
@@ -32,12 +32,15 @@ export interface HorarioBase {
 }
 
 export interface TurnoOperativo {
+  id: number | null;
   unidad: UnidadNegocio;
   horaInicio: string;
   horaFin: string;
   estado: EstadoTurno;
   caja: EstadoCaja;
   alerta: string | null;
+  responsable: string;
+  cerradoPor: string;
 }
 
 export interface PendienteCierre {
@@ -69,6 +72,10 @@ export interface ZonaDemo {
   id: number;
   nombre: string;
   activa: boolean;
+  mesas: number;
+  cajas: number;
+  cocinas: number;
+  uso?: 'sin-uso' | 'historial' | 'operacion-activa';
 }
 
 export interface MesaDemo {
@@ -153,25 +160,137 @@ export interface RecetaInsumo {
 export interface RecetaDemo {
   id: number;
   nombre: string;
+  categoria?: CategoriaProducto;
+  ambito?: AmbitoProducto;
+  precio?: number;
   insumos: RecetaInsumo[];
 }
 
-export interface ProductoDemo {
-  id: number;
+// ---------- Productos y carta del día ----------
+// Espejo de dbo.productos, dbo.cartas y dbo.carta_detalle (V1). Lo marcado
+// como "propuesta" todavía no existe en la base y requiere una migración nueva.
+
+/** dbo.productos.ambito */
+export type AmbitoProducto = 'RESTAURANTE' | 'POLLERIA' | 'AMBOS';
+
+/** dbo.productos.categoria */
+export type CategoriaProducto =
+  | 'Menú'
+  | 'Entrada'
+  | 'Segundo'
+  | 'Plato ejecutivo'
+  | 'Plato marino'
+  | 'Plato chifa'
+  | 'Plato a la brasa'
+  | 'Bebida'
+  | 'Ensalada'
+  | 'Guarnición'
+  | 'Combo'
+  | 'Postre'
+  | 'Extra'
+  | 'Otro';
+
+export const CATEGORIAS_PRODUCTO: readonly CategoriaProducto[] = [
+  'Menú',
+  'Entrada',
+  'Segundo',
+  'Plato ejecutivo',
+  'Plato marino',
+  'Plato chifa',
+  'Plato a la brasa',
+  'Bebida',
+  'Ensalada',
+  'Guarnición',
+  'Combo',
+  'Postre',
+  'Extra',
+  'Otro',
+];
+
+/** Categorías que el supervisor elige al armar una receta. */
+export const CATEGORIAS_RECETA: readonly CategoriaProducto[] = [
+  'Entrada',
+  'Segundo',
+  'Plato ejecutivo',
+  'Plato marino',
+  'Plato chifa',
+  'Plato a la brasa',
+  'Bebida',
+  'Ensalada',
+  'Extra',
+];
+
+/** Propuesta dbo.producto_componente: un producto armado con otros productos (1/4 pollo + papas + ensalada). */
+export interface ComponenteProducto {
+  productoId: number;
   nombre: string;
-  categoria: string;
-  precio: string;
-  activo: boolean;
-  unidades: UnidadNegocio[];
+  cantidad: number;
 }
 
-export interface ItemCartaDemo {
+/**
+ * dbo.productos. El `id` es el código que viaja en el pedido; el mesero solo
+ * ve el `nombre`. `precio` es el precio base; la carta del día puede
+ * sobreescribirlo con `DetalleCarta.precioDia`.
+ */
+export interface Producto {
+  id: number;
+  nombre: string;
+  categoria: CategoriaProducto;
+  ambito: AmbitoProducto;
+  precio: number;
+  activo: boolean;
+  componentes?: ComponenteProducto[];
+}
+
+/** Propuesta dbo.carta_detalle.seccion: bloque de la carta en el que aparece el producto. */
+export type SeccionCarta =
+  | 'MENU_CRIOLLO'
+  | 'MENU_CRIOLLO_ENTRADA'
+  | 'MENU_CRIOLLO_SEGUNDO'
+  | 'MENU_EJECUTIVO'
+  | 'A_LA_CARTA'
+  | 'BEBIDA'
+  | 'POSTRE'
+  | 'OTRO'
+  | 'BRASA'
+  | 'CHIFA'
+  | 'EXTRA'
+  | 'COMBO';
+
+/** dbo.carta_detalle.estado_producto */
+export type EstadoProductoCarta = 'DISPONIBLE' | 'AGOTADO';
+
+/** dbo.carta_detalle */
+export interface DetalleCarta {
   id: number;
   productoId: number;
-  producto: string;
+  nombre: string;
+  seccion: SeccionCarta;
+  precioDia: number | null;
+  precioEfectivo: number;
+  estado: EstadoProductoCarta;
+  componentes: ComponenteProducto[];
+}
+
+/** dbo.cartas: carta nombrada por unidad, con una vigente. */
+export interface CartaDia {
+  id: number;
+  nombre: string;
   unidad: UnidadNegocio;
-  precio: string;
-  disponibilidad: DisponibilidadCarta;
+  fecha: string;
+  estado: 'ACTIVA' | 'CERRADA';
+  vigente: boolean;
+  detalles: DetalleCarta[];
+}
+
+/** Línea resuelta para pantalla. */
+export interface LineaCartaVista {
+  detalleId: number;
+  productoId: number;
+  nombre: string;
+  precio: number;
+  estado: EstadoProductoCarta;
+  componentes: readonly ComponenteProducto[];
 }
 
 export function claseEstadoTurno(estado: EstadoTurno): string {
@@ -182,6 +301,117 @@ export function claseEstadoTurno(estado: EstadoTurno): string {
     return 'lr-estado--abierta';
   }
   return 'lr-estado--inactivo';
+}
+
+export function etiquetaEstadoTurno(estado: EstadoTurno): string {
+  if (estado === 'ACTIVO') {
+    return 'Activo';
+  }
+  if (estado === 'EN CIERRE') {
+    return 'En cierre';
+  }
+  return 'Cerrado';
+}
+
+export function minutosHastaFin(horaFin: string, ahora: Date): number {
+  const partes = horaFin.split(':').map((p) => Number(p));
+  const hora = partes[0] ?? 0;
+  const minuto = partes[1] ?? 0;
+  const fin = new Date(ahora);
+  fin.setHours(hora, minuto, 0, 0);
+  if (fin.getTime() <= ahora.getTime()) {
+    fin.setDate(fin.getDate() + 1);
+  }
+  return Math.max(0, Math.floor((fin.getTime() - ahora.getTime()) / 60_000));
+}
+
+export function textoTiempoRestante(minutos: number): string {
+  if (minutos <= 0) {
+    return 'Tiempo cumplido';
+  }
+  if (minutos < 60) {
+    return `Falta ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}`;
+  }
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return `Falta ${horas} h ${String(resto).padStart(2, '0')} min`;
+}
+
+export function marcadorTurno(
+  estado: EstadoTurno,
+  minutos: number,
+): { texto: string; clase: string } {
+  if (estado === 'CERRADO') {
+    return { texto: 'Cerrado', clase: 'lr-estado--inactivo' };
+  }
+  const resto = textoTiempoRestante(minutos);
+  if (estado === 'EN CIERRE') {
+    return { texto: `En cierre · ${resto}`, clase: 'lr-estado--alerta' };
+  }
+  if (minutos <= 30) {
+    return { texto: `Activo · ${resto}`, clase: 'lr-estado--abierta' };
+  }
+  return { texto: `Activo · ${resto}`, clase: 'lr-estado--activo' };
+}
+
+export function funcionOperativaDe(persona: Pick<PersonalTurno, 'funcionActual' | 'rolPermanente'>): RolTemporal {
+  const texto = persona.funcionActual.toUpperCase();
+  if (texto.includes('SUPERVISOR')) {
+    return 'SUPERVISOR';
+  }
+  if (texto.includes('CAJA')) {
+    return 'CAJA';
+  }
+  if (texto.includes('COCINA')) {
+    return 'COCINA';
+  }
+  if (texto.includes('MESERO')) {
+    return 'MESERO';
+  }
+  if (persona.rolPermanente === 'SUPERVISOR' || persona.rolPermanente === 'COCINA' || persona.rolPermanente === 'CAJA') {
+    return persona.rolPermanente;
+  }
+  return 'MESERO';
+}
+
+export function esAsignacionTemporal(persona: Pick<PersonalTurno, 'funcionActual' | 'estado'>): boolean {
+  return persona.estado === 'Asignación temporal' || /temporal/i.test(persona.funcionActual);
+}
+
+export function etiquetaFuncionActual(persona: Pick<PersonalTurno, 'funcionActual' | 'rolPermanente' | 'estado'>): string {
+  const clave = persona.funcionActual.toUpperCase();
+  const etiqueta =
+    clave in ROL_ETIQUETA ? ROL_ETIQUETA[clave as Rol] : ROL_ETIQUETA[funcionOperativaDe(persona)];
+  return esAsignacionTemporal(persona) ? `${etiqueta} temporal` : etiqueta;
+}
+
+export function siguienteUnidad(unidad: UnidadNegocio): UnidadNegocio {
+  return unidad === 'Pollería' ? 'Restaurante' : 'Pollería';
+}
+
+export function etiquetaRolTemporal(persona: Pick<PersonalTurno, 'funcionActual' | 'rolPermanente'>): string {
+  return ROL_ETIQUETA[funcionOperativaDe(persona)];
+}
+
+export function claseRolTemporal(persona: Pick<PersonalTurno, 'funcionActual' | 'rolPermanente'>): string {
+  return persona.funcionActual.toUpperCase() === persona.rolPermanente ||
+    funcionOperativaDe(persona) === persona.rolPermanente
+    ? 'lr-estado--activo'
+    : 'lr-estado--abierta';
+}
+
+export function coincidePersonalTurno(
+  persona: PersonalTurno,
+  busqueda: string,
+  funcion: RolTemporal | '',
+): boolean {
+  const texto = busqueda.trim().toLowerCase();
+  const coincideTexto =
+    !texto ||
+    persona.empleado.toLowerCase().includes(texto) ||
+    persona.username.toLowerCase().includes(texto);
+  const rol = persona.funcionActual.toUpperCase();
+  return coincideTexto && (!funcion || rol === funcion);
 }
 
 export function estadoStockDe(insumo: Pick<InsumoDemo, 'stock' | 'minimo' | 'estado'>): EstadoStock {

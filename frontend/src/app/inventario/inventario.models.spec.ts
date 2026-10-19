@@ -1,11 +1,14 @@
 import { estadoStockDe } from '../paneles/supervision/datos/supervision.models';
 import {
   coincideFiltroInsumo,
+  convertirCantidadUnidad,
   etiquetaEstadoOperativo,
+  factorConversionUnidad,
   mapearCompra,
   mapearInsumo,
   mapearMovimiento,
   mapearProveedor,
+  mensajeUnidadIncompatible,
   muestraEstadoStock,
   unidadDesdeApi,
   unidadHaciaApi,
@@ -15,6 +18,15 @@ describe('inventario.models', () => {
   it('mapea unidades de ida y vuelta', () => {
     expect(unidadDesdeApi('UNIDAD')).toBe('Unidad');
     expect(unidadHaciaApi('Kilogramo (kg)')).toBe('KILOGRAMO');
+  });
+
+  it('convierte kilogramo a gramo y no convierte unidad', () => {
+    expect(factorConversionUnidad('Kilogramo (kg)', 'Gramo (g)')).toBe(1000);
+    expect(convertirCantidadUnidad(5, 1000)).toBe(5000);
+    expect(convertirCantidadUnidad(50, 1000)).toBe(50000);
+    expect(factorConversionUnidad('Unidad', 'Kilogramo (kg)')).toBeNull();
+    expect(factorConversionUnidad('Gramo (g)', 'Litro (L)')).toBeNull();
+    expect(mensajeUnidadIncompatible('Unidad', 'Kilogramo (kg)')).toContain('elimínalo');
   });
 
   it('mapea insumo con estado calculado del backend', () => {

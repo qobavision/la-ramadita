@@ -37,4 +37,8 @@ export class ProveedoresService {
   alternarActivo(id: number): Observable<ProveedorApi> {
     return this.http.patch<ProveedorApi>(`${this.base}/${id}/activo`, {}).pipe(tap(() => this.cargar().subscribe()));
   }
+
+  archivar(id: number): Observable<ProveedorApi> {
+    return this.http.patch<ProveedorApi>(`${this.base}/${id}/archivar`, {}).pipe(tap(() => this.cargar().subscribe()));
+  }
 }

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.laramadita.backend.seguridad.api.dto.LoginRequest;
 import com.laramadita.backend.usuarios.model.RolNombre;
 import com.laramadita.backend.usuarios.model.Usuario;
+import com.laramadita.backend.turnos.service.TurnoService;
 import com.laramadita.backend.usuarios.repository.UsuarioRepository;
 import java.time.Instant;
 import java.util.Optional;
@@ -33,12 +34,14 @@ class AuthServiceTest {
 	UsuarioRepository usuarios;
 	@Mock
 	JwtService jwt;
+	@Mock
+	TurnoService turnos;
 
 	AuthService service;
 
 	@BeforeEach
 	void preparar() {
-		service = new AuthService(authenticationManager, usuarios, jwt);
+		service = new AuthService(authenticationManager, usuarios, jwt, turnos);
 	}
 
 	@Test
@@ -47,11 +50,13 @@ class AuthServiceTest {
 		when(authenticationManager.authenticate(any())).thenReturn(mock(Authentication.class));
 		when(usuarios.findByUsername("admin")).thenReturn(Optional.of(cuenta));
 		when(jwt.emitir(cuenta)).thenReturn(new JwtService.Token("tok", Instant.now().plusSeconds(60)));
+		when(turnos.funcionActualDe(cuenta)).thenReturn("ADMINISTRADOR");
 
 		service.login(new LoginRequest("admin", "clave"));
 
 		assertThat(cuenta.getFechaUltimoAcceso()).isNotNull();
 		verify(usuarios).save(cuenta);
+		verify(turnos).registrarIngresoSiHayTurno(cuenta);
 	}
 
 	@Test
@@ -62,12 +67,14 @@ class AuthServiceTest {
 				.isInstanceOf(BadCredentialsException.class);
 
 		verify(usuarios, never()).save(any());
+		verify(turnos, never()).registrarIngresoSiHayTurno(any());
 	}
 
 	@Test
 	void consultarElUsuarioActualNoRegistraUltimoAcceso() {
 		Usuario cuenta = usuario(1, "admin", RolNombre.ADMINISTRADOR, true);
 		when(usuarios.findByUsername("admin")).thenReturn(Optional.of(cuenta));
+		when(turnos.funcionActualDe(cuenta)).thenReturn("ADMINISTRADOR");
 
 		service.usuarioActual("admin");
 
