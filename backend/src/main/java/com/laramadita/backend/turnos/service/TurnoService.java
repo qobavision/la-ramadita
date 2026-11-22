@@ -114,10 +114,31 @@ public class TurnoService {
 		return TurnoResponse.de(turno, horarioDe(turno.getUnidad().getNombre()));
 	}
 
+	/**
+	 * Finalizar turno. Sin pendientes se cierra en el acto. Con atenciones por
+	 * cobrar o caja abierta "se cierra la puerta": queda en cierre (no se inician
+	 * nuevas atenciones) y se cierra solo al cobrar lo que queda y cerrar la caja.
+	 */
 	public TurnoResponse cerrar(Integer id, String username) {
 		Turno turno = buscar(id);
-		turno.cerrar(usuarioDe(username));
+		Usuario actor = usuarioDe(username);
+		if (tienePendientes(turno)) {
+			turno.solicitarCierre(actor);
+		} else {
+			turno.cerrar(actor);
+		}
 		return TurnoResponse.de(turno, horarioDe(turno.getUnidad().getNombre()));
+	}
+
+	/** Caja y Atención lo llaman al cobrar, liberar una mesa o cerrar la caja. */
+	public void cerrarSiCorresponde(Turno turno) {
+		if (turno == null || turno.getEstado() != EstadoTurno.EN_CIERRE || !turno.cierreSolicitado()) {
+			return;
+		}
+		turnos.flush();
+		if (!tienePendientes(turno)) {
+			turno.cerrar(turno.getCierreSolicitadoPor());
+		}
 	}
 
 	public PersonalTurnoResponse asignarFuncion(Integer usuarioId, FuncionTurnoRequest request, String actorUsername) {
@@ -151,6 +172,19 @@ public class TurnoService {
 				.flatMap(turno -> asistencias.findByTurnoAndUsuario(turno, usuario))
 				.map(asistencia -> asistencia.funcionActual().name())
 				.orElse(permanente);
+	}
+
+	/** Mesas o pedidos para llevar sin cobrar, o la caja del turno todavía abierta. */
+	private boolean tienePendientes(Turno turno) {
+		return turnos.contarAtencionesSinCobrar(turno.getId()) > 0 || turnos.contarCajasAbiertas(turno.getId()) > 0;
+	}
+
+	/** Turno en curso (abierto o en cierre). Las atenciones y pedidos siempre pertenecen a uno. */
+	public Turno exigirTurnoEnCurso() {
+		abrirPendientesPorHorario();
+		return turnos.findFirstByEstadoInOrderByFechaAperturaDesc(EN_CURSO)
+				.orElseThrow(() -> new ReglaNegocioException(
+						"No hay un turno en curso. La atención de mesas se habilita cuando el turno está abierto."));
 	}
 
 	public void registrarIngresoSiHayTurno(Usuario usuario) {

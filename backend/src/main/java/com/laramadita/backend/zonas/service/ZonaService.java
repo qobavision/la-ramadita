@@ -7,10 +7,12 @@ import com.laramadita.backend.shared.texto.TextoDescriptivo;
 import com.laramadita.backend.zonas.api.dto.MesaResponse;
 import com.laramadita.backend.zonas.api.dto.ZonaRequest;
 import com.laramadita.backend.zonas.api.dto.ZonaResponse;
+import com.laramadita.backend.zonas.model.Mesa;
 import com.laramadita.backend.zonas.model.Zona;
 import com.laramadita.backend.zonas.repository.MesaRepository;
 import com.laramadita.backend.zonas.repository.ZonaRepository;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +30,10 @@ public class ZonaService {
 
 	@Transactional(readOnly = true)
 	public List<ZonaResponse> listar() {
-		return zonas.findAllByOrderByNombreAsc().stream().map(ZonaResponse::de).toList();
+		Set<Integer> conHistorial = Set.copyOf(mesas.zonasConHistorial());
+		return zonas.findAllByOrderByNombreAsc().stream()
+				.map(z -> ZonaResponse.de(z, conHistorial.contains(z.getId())))
+				.toList();
 	}
 
 	@Transactional(readOnly = true)
@@ -49,8 +54,9 @@ public class ZonaService {
 		String nombre = exigirNombre(request.nombre());
 		exigirNombreDisponible(nombre, id);
 		zona.actualizar(nombre, request.cajas(), request.cocinas());
+		exigirSinHistorialAlQuitarMesas(zona, request.cantidadMesas());
 		zona.sincronizarMesas(request.cantidadMesas());
-		return ZonaResponse.de(zona);
+		return ZonaResponse.de(zona, tieneHistorial(id));
 	}
 
 	public ZonaResponse cambiarActivo(Integer id) {
@@ -60,7 +66,7 @@ public class ZonaService {
 		} else {
 			zona.activar();
 		}
-		return ZonaResponse.de(zona);
+		return ZonaResponse.de(zona, tieneHistorial(id));
 	}
 
 	public void eliminar(Integer id) {
@@ -68,7 +74,30 @@ public class ZonaService {
 		if (!zona.sePuedeEliminar()) {
 			throw new ReglaNegocioException("No se puede eliminar: hay mesas ocupadas");
 		}
+		if (tieneHistorial(id)) {
+			throw new ReglaNegocioException(
+					"No se puede eliminar: la zona tiene historial de atenciones. Puedes inactivarla.");
+		}
 		zonas.delete(zona);
+	}
+
+	/** Las mesas con atenciones registradas conservan su historial: no se borran al reducir la cantidad. */
+	private void exigirSinHistorialAlQuitarMesas(Zona zona, int cantidad) {
+		List<Mesa> actuales = zona.getMesas();
+		if (cantidad >= actuales.size()) {
+			return;
+		}
+		Set<Integer> conHistorial = Set.copyOf(mesas.mesasConHistorial(zona.getId()));
+		boolean quitaConHistorial = actuales.subList(Math.max(cantidad, 0), actuales.size()).stream()
+				.anyMatch(m -> conHistorial.contains(m.getId()));
+		if (quitaConHistorial) {
+			throw new ReglaNegocioException(
+					"No se pueden quitar mesas con historial de atenciones. Puedes inactivar la zona.");
+		}
+	}
+
+	private boolean tieneHistorial(Integer zonaId) {
+		return !mesas.mesasConHistorial(zonaId).isEmpty();
 	}
 
 	private Zona buscar(Integer id) {

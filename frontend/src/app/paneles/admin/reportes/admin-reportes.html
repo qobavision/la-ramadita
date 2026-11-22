@@ -1,7 +1,7 @@
 <app-encabezado-pagina
   eyebrow="Análisis"
   titulo="Reportes / BI"
-  descripcion="Indicadores, comparaciones y consulta histórica de ventas en un solo lugar. Los reportes se generan a partir de la información registrada por el sistema."
+  descripcion="Indicadores, comparaciones y consulta histórica de ventas cobradas. Todo se calcula con la información registrada en el sistema."
 >
   <span acciones class="lr-pildora">
     <app-icono nombre="calendario" [tamano]="14" />
@@ -9,7 +9,11 @@
   </span>
 </app-encabezado-pagina>
 
-<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
+<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" [(desde)]="desde" [(hasta)]="hasta" />
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
 
 <div class="lr-pestanas" role="tablist" aria-label="Tipos de reporte">
   @for (p of pestanas; track p.id) {
@@ -19,38 +23,186 @@
   }
 </div>
 
-@switch (actual().id) {
+@switch (pestana()) {
   @case ('resumen') {
     <section class="lr-rejilla mb-3" aria-label="Indicadores del periodo">
-      @for (k of indicadoresResumen; track k) {
-        <article class="lr-kpi">
-          <span>{{ k }}</span>
-          <strong aria-label="Sin datos">—</strong>
-          <small>Disponible cuando existan ventas</small>
-        </article>
-      }
+      <article class="lr-kpi lr-kpi--lleno">
+        <span>Ventas del periodo</span>
+        <strong>{{ resumen() ? soles(resumen()!.total) : '—' }}</strong>
+        <small>{{ resumen()?.desde ? dia(resumen()!.desde) + ' – ' + dia(resumen()!.hasta) : '' }}</small>
+      </article>
+      <article class="lr-kpi lr-kpi--lleno">
+        <span>Ventas cobradas</span>
+        <strong>{{ resumen()?.ventas ?? '—' }}</strong>
+        <small>Atenciones pagadas</small>
+      </article>
+      <article class="lr-kpi lr-kpi--lleno">
+        <span>Ticket promedio</span>
+        <strong>{{ resumen() ? soles(resumen()!.ticketPromedio) : '—' }}</strong>
+        <small>{{ resumen()?.unidad }}</small>
+      </article>
     </section>
     <div class="lr-dashboard-fila">
-      <app-bloque-grafico titulo="Evolución del periodo" icono="tendencia" tipo="barras" />
-      <app-bloque-grafico titulo="Restaurante vs Pollería" icono="dona" tipo="dona" />
+      <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Evolución del periodo">
+        <header><div><h3>Evolución del periodo</h3><p>Total cobrado por día operativo</p></div><app-icono nombre="tendencia" [tamano]="18" /></header>
+        <app-grafico-columnas [puntos]="porDia()" [formato]="soles" aviso="Sin ventas cobradas en el periodo" />
+      </section>
+      <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Restaurante vs Pollería">
+        <header><div><h3>Restaurante vs Pollería</h3><p>Participación en lo cobrado</p></div><app-icono nombre="dona" [tamano]="18" /></header>
+        <app-grafico-participacion [segmentos]="unidades()" />
+      </section>
     </div>
   }
+
   @case ('historico') {
+    <div class="lr-filtros mb-3">
+      <input
+        type="search"
+        class="form-control"
+        placeholder="Buscar por mesa, zona, mesero o método de pago"
+        aria-label="Buscar ventas"
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)"
+      />
+      <span class="lr-pildora">{{ ventasFiltradas().length }} ventas · {{ soles(totalListado()) }}</span>
+    </div>
     <app-tabla-listado
       [columnas]="columnasHistorico"
-      [total]="0"
+      [total]="ventasFiltradas().length"
       vacioIcono="historial"
-      vacioTitulo="Sin ventas en el periodo"
-      vacioDescripcion="Aquí se consultará el histórico de ventas por día, semana, mes o rango, con detalle por unidad y turno."
-    />
+      [vacioTitulo]="ventas() === null ? 'Cargando ventas…' : 'Sin ventas en el periodo'"
+      vacioDescripcion="Aquí aparecen las atenciones cobradas por completo, con sus productos y métodos de pago."
+    >
+      @for (v of ventasFiltradas(); track v.atencionId) {
+        <tr filas>
+          <td>{{ fecha(v.fecha) }} · {{ hora(v.fecha) }}</td>
+          <td>{{ v.unidad }}</td>
+          <td>
+            <strong>{{ v.identificacion }}</strong>
+            @if (v.zona) {
+              <small class="d-block text-secondary">{{ v.zona }}</small>
+            }
+          </td>
+          <td>{{ v.mesero }}</td>
+          <td>{{ metodosTexto(v) }}</td>
+          <td class="num"><strong>{{ soles(v.cobrado) }}</strong></td>
+          <td>
+            <button type="button" class="lr-accion" title="Ver detalle de la venta" (click)="verDetalle(v)">
+              <app-icono nombre="ver" [tamano]="16" />
+            </button>
+          </td>
+        </tr>
+      }
+    </app-tabla-listado>
   }
+
+  @case ('evolucion') {
+    <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Evolución de ventas">
+      <header><div><h3>Evolución de ventas</h3><p>Total cobrado por día operativo (fecha de apertura del turno) · {{ resumen()?.unidad }}</p></div><app-icono nombre="tendencia" [tamano]="18" /></header>
+      <app-grafico-columnas [puntos]="porDia()" [formato]="soles" aviso="Sin ventas cobradas en el periodo" />
+    </section>
+  }
+
+  @case ('platos') {
+    <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Platos más vendidos">
+      <header><div><h3>Platos más vendidos</h3><p>Top 10 por cantidad, con su importe al precio de venta</p></div><app-icono nombre="productos" [tamano]="18" /></header>
+      <app-grafico-ranking [filas]="platos()" [numerado]="true" aviso="Sin platos vendidos en el periodo" />
+    </section>
+  }
+
+  @case ('horarios') {
+    <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Horarios de mayor venta">
+      <header><div><h3>Horarios de mayor venta</h3><p>Total cobrado por franja de una hora (hora de cierre de la venta)</p></div><app-icono nombre="reloj" [tamano]="18" /></header>
+      <app-grafico-columnas [puntos]="porHora()" [formato]="soles" aviso="Sin ventas cobradas en el periodo" />
+    </section>
+  }
+
+  @case ('metodos') {
+    <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Ventas por método de pago">
+      <header><div><h3>Ventas por método de pago</h3><p>Monto cobrado, participación y número de ventas en que se usó</p></div><app-icono nombre="pago" [tamano]="18" /></header>
+      <app-grafico-ranking [filas]="metodos()" aviso="Sin pagos registrados en el periodo" />
+    </section>
+  }
+
+  @case ('unidades') {
+    <div class="lr-dashboard-fila">
+      <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Participación por unidad">
+        <header><div><h3>Restaurante vs Pollería</h3><p>Participación de cada unidad en lo cobrado</p></div><app-icono nombre="dona" [tamano]="18" /></header>
+        <app-grafico-participacion [segmentos]="unidades()" />
+      </section>
+      <section class="lr-rejilla" aria-label="Indicadores por unidad">
+        @for (u of resumen()?.porUnidad ?? []; track u.clave) {
+          <article class="lr-kpi lr-kpi--lleno">
+            <span>{{ u.etiqueta }}</span>
+            <strong>{{ soles(u.total) }}</strong>
+            <small>{{ u.cantidad }} ventas · ticket {{ ticketUnidad(u.clave) }}</small>
+          </article>
+        }
+      </section>
+    </div>
+  }
+
   @default {
     <app-bloque-grafico
-      [titulo]="actual().titulo"
-      [descripcion]="actual().descripcion"
-      [icono]="actual().icono"
-      [tipo]="actual().tipo"
-      [nota]="actual().nota"
+      titulo="Rentabilidad"
+      descripcion="Margen por producto y por unidad, calculado a partir de recetas y costos de insumos."
+      icono="ventas"
+      tipo="barras"
+      nota="Disponible cuando existan costos suficientes y el consumo de insumos al preparar (M03/M04)"
     />
   }
+}
+
+@if (detalle(); as d) {
+  <app-dialogo [eyebrow]="d.venta.unidad + ' · ' + fecha(d.venta.fecha)" [titulo]="d.venta.identificacion" (cerrar)="detalle.set(null)">
+    <p class="small text-secondary mb-2">Atendió {{ d.venta.mesero }} · cerrada a las {{ hora(d.venta.fecha) }}</p>
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">P. unit.</th><th class="text-end">Subtotal</th></tr>
+      </thead>
+      <tbody>
+        @for (p of d.productos; track $index) {
+          <tr>
+            <td>{{ p.producto }}@if (p.observacion) {<small class="d-block text-secondary">{{ p.observacion }}</small>}</td>
+            <td class="text-end">{{ p.cantidad }}</td>
+            <td class="text-end">{{ soles(p.precioUnitario) }}</td>
+            <td class="text-end">{{ soles(p.subtotal) }}</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr><th colspan="3">Total consumido</th><th class="text-end">{{ soles(d.venta.consumo) }}</th></tr>
+      </tfoot>
+    </table>
+    <h3 class="lr-seccion mt-3">Pagos</h3>
+    <ul class="lr-alertas-stock">
+      @for (p of d.pagos; track $index) {
+        <li>
+          <span>
+            {{ metodo(p.metodo) }} <small>· {{ hora(p.fecha) }} · {{ p.cajero }}</small>
+            @if (p.estado === 'ANULADO') {
+              <span class="lr-estado lr-estado--inactivo ms-1">Anulado</span>
+            }
+          </span>
+          <strong [class.text-decoration-line-through]="p.estado === 'ANULADO'">{{ soles(p.monto) }}</strong>
+        </li>
+      }
+    </ul>
+    @if (d.comprobantes.length > 0) {
+      <h3 class="lr-seccion mt-3">Comprobantes</h3>
+      <ul class="lr-alertas-stock">
+        @for (c of d.comprobantes; track c.serie + c.numero) {
+          <li>
+            <span>
+              {{ c.tipo }} {{ c.serie }}-{{ c.numero }}
+              @if (c.estado === 'ANULADO') {
+                <span class="lr-estado lr-estado--inactivo ms-1">Anulada</span>
+              }
+            </span>
+            <strong [class.text-decoration-line-through]="c.estado === 'ANULADO'">{{ soles(c.total) }}</strong>
+          </li>
+        }
+      </ul>
+    }
+  </app-dialogo>
 }

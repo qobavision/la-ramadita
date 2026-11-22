@@ -3,8 +3,8 @@ package com.laramadita.backend.inventario.model;
 /**
  * Tipos persistidos en {@code dbo.inventario_movimientos} (V1).
  *
- * ENTRADA_COMPRA = recepción. SALIDA_RECETA y ajustes quedan listos
- * para cocina y correcciones futuras, sin implementarse ahora.
+ * ENTRADA_COMPRA = recepción. SALIDA_RECETA = consumo por receta al preparar
+ * en Cocina (V15). Los ajustes quedan listos para correcciones futuras.
  */
 public enum TipoMovimientoInventario {
 

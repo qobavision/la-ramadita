@@ -69,5 +69,9 @@
     <main class="panel__contenido">
       <router-outlet />
     </main>
+
+    @if (config.complemento; as complemento) {
+      <ng-container *ngComponentOutlet="complemento" />
+    }
   </div>
 </div>

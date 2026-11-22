@@ -175,7 +175,9 @@ class UsuarioServiceTest {
 			Usuario cuenta = guardado.getValue();
 			when(usuarios.findByUsername("mesero.nuevo")).thenReturn(Optional.of(cuenta));
 
-			assertThat(new UsuarioDetailsService(usuarios).loadUserByUsername("mesero.nuevo").isEnabled()).isTrue();
+			var detalles = new UsuarioDetailsService(usuarios, org.mockito.Mockito.mock(
+					com.laramadita.backend.turnos.service.TurnoService.class));
+			assertThat(detalles.loadUserByUsername("mesero.nuevo").isEnabled()).isTrue();
 			assertThat(cuenta.getPasswordHash()).isEqualTo(HASH);
 		}
 

@@ -1,3 +1,5 @@
+import { MesaSalon, horaDe, tiempoDesde } from '../../../atencion/atencion.models';
+import { CajaSesion } from '../../../caja/caja.models';
 import { EstadoMesaOp, MesaDemo, formatoSoles } from '../datos/supervision.models';
 
 export type FiltroMesasInicio = 'Ocupada' | 'Libre' | 'Todas';
@@ -37,6 +39,21 @@ export function cajasMonitoreoIniciales(): CajaMonitoreo[] {
   return [];
 }
 
+/** Cajas abiertas reales (M10): responsable, unidad, apertura y total cobrado. */
+export function cajasMonitoreoDe(sesiones: readonly CajaSesion[]): CajaMonitoreo[] {
+  return sesiones
+    .filter((s) => s.estado === 'ABIERTA')
+    .map((s) => ({
+      id: s.id,
+      nombre: `Caja #${s.id}`,
+      zona: s.unidad,
+      responsable: s.responsable,
+      horaApertura: horaDe(s.apertura),
+      estado: 'Abierta',
+      monto: s.totalCobrado,
+    }));
+}
+
 export function cocinaMonitoreoInicial(): PedidoCocinaMonitoreo[] {
   return [];
 }
@@ -74,6 +91,20 @@ export function resumenMesas(mesas: readonly MesaMonitoreo[]): string {
   const ocupadas = mesas.filter((m) => m.estado === 'Ocupada').length;
   const libres = mesas.filter((m) => m.estado === 'Libre').length;
   return `${ocupadas} ocupadas · ${libres} libres`;
+}
+
+/** Ocupación real del salón (M06): mesa, mesero, atención, tiempo y consumo. */
+export function mesasMonitoreoDeSalon(mesas: readonly MesaSalon[]): MesaMonitoreo[] {
+  return mesas.map((mesa) => ({
+    id: mesa.id,
+    nombre: mesa.nombre,
+    zona: mesa.zona,
+    estado: mesa.estado === 'DISPONIBLE' ? 'Libre' : 'Ocupada',
+    mesero: mesa.atencion?.mesero ?? null,
+    pedido: mesa.atencion ? `#${mesa.atencion.id}` : null,
+    tiempo: mesa.atencion ? tiempoDesde(mesa.atencion.inicio) : null,
+    total: mesa.atencion?.total ?? null,
+  }));
 }
 
 export function filtrarMesasMonitoreo(mesas: readonly MesaMonitoreo[], filtro: FiltroMesasInicio): MesaMonitoreo[] {

@@ -1,0 +1,317 @@
+// Gráficos de Reportes / BI y Dashboard (M11/M12): columnas, ranking y participación.
+// Colores por entidad validados con el validador de dataviz sobre la tarjeta (#fffdf9):
+// Restaurante/Pollería pasan luminosidad, croma, separación CVD y contraste ≥ 3:1.
+// El verde y el rojo de la marca quedan reservados para estados (activo, alerta).
+
+:root {
+  --lr-serie-principal: #d85b2b; // una sola serie: naranja de la marca
+  --lr-serie-restaurante: #2f6fb3;
+  --lr-serie-polleria: #c98500;
+  --lr-rejilla-grafico: #eee8df;
+}
+
+.lr-grafico-vacio {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--lr-linea);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--lr-gris);
+  text-align: center;
+}
+
+// ---------- Columnas ----------
+.lr-cols {
+  display: block;
+}
+
+.lr-cols__plano {
+  position: relative;
+  height: 190px;
+  margin: 8px 0 0 40px;
+}
+
+.lr-cols__tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--lr-rejilla-grafico);
+
+  small {
+    position: absolute;
+    right: calc(100% + 8px);
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--lr-gris);
+    white-space: nowrap;
+  }
+}
+
+.lr-cols__area {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--columnas), minmax(0, 1fr));
+  column-gap: 2px;
+}
+
+.lr-cols__col {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: default;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: #f6f1ea;
+
+    .lr-cols__barra {
+      filter: brightness(1.12);
+    }
+
+    .lr-cols__tip {
+      display: flex;
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--lr-naranja);
+  }
+}
+
+.lr-cols__barra {
+  width: min(24px, 72%);
+  border-radius: 4px 4px 0 0;
+
+  &--cero {
+    height: 0 !important;
+  }
+}
+
+.lr-cols__tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 96px;
+  padding: 8px 10px;
+  border: 1px solid var(--lr-linea);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--lr-sombra);
+  transform: translateX(-50%);
+  text-align: left;
+  pointer-events: none;
+
+  strong {
+    font-size: 14px;
+    color: var(--lr-tinta);
+  }
+
+  small {
+    font-size: 11px;
+    color: var(--lr-gris);
+    white-space: nowrap;
+  }
+}
+
+.lr-cols__x {
+  display: grid;
+  grid-template-columns: repeat(var(--columnas), minmax(0, 1fr));
+  column-gap: 2px;
+  margin: 6px 0 0 40px;
+
+  span {
+    overflow: visible;
+    font-size: 11px;
+    color: var(--lr-gris);
+    text-align: center;
+    white-space: nowrap;
+  }
+}
+
+.lr-grafico-tabla {
+  margin-top: 10px;
+  font-size: 12px;
+
+  summary {
+    width: fit-content;
+    color: var(--lr-gris);
+    cursor: pointer;
+  }
+
+  table {
+    width: 100%;
+    margin-top: 6px;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--lr-linea);
+    font-weight: 400;
+    text-align: left;
+  }
+
+  td:nth-child(2) {
+    font-weight: 700;
+    text-align: right;
+  }
+}
+
+// ---------- Ranking ----------
+.lr-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ranking;
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    align-items: baseline;
+    counter-increment: ranking;
+  }
+}
+
+.lr-ranking--numerado .lr-ranking__etiqueta::before {
+  content: counter(ranking) '. ';
+  color: var(--lr-gris);
+}
+
+.lr-ranking__etiqueta {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lr-ranking__valor {
+  text-align: right;
+
+  strong {
+    font-size: 13px;
+  }
+
+  small {
+    margin-left: 6px;
+    font-size: 11px;
+    color: var(--lr-gris);
+  }
+}
+
+.lr-ranking__pista {
+  grid-column: 1 / -1;
+  height: 10px;
+  border-radius: 0 4px 4px 0;
+  background: #f3eee7;
+}
+
+.lr-ranking__barra {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 0 4px 4px 0;
+}
+
+// ---------- Participación (parte de un todo) ----------
+.lr-participacion {
+  display: flex;
+  gap: 2px;
+  height: 24px;
+  margin: 10px 0 14px;
+
+  span {
+    min-width: 4px;
+
+    &:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    &:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+
+    &:only-child {
+      border-radius: 4px;
+    }
+  }
+}
+
+.lr-participacion__leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto 44px;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  i {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  small {
+    color: var(--lr-gris);
+    text-align: right;
+  }
+}
+
+// ---------- Contenido real dentro de un bloque del dashboard ----------
+.lr-bloque--datos {
+  gap: 4px;
+}
+
+.lr-alertas-stock {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--lr-linea);
+    font-size: 13px;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  small {
+    color: var(--lr-gris);
+  }
+}

@@ -15,5 +15,7 @@ module.exports = {
     target,
     secure: false,
     changeOrigin: true,
+    // Avisos en tiempo real (/api/v1/tiempo-real) por WebSocket.
+    ws: true,
   },
 };

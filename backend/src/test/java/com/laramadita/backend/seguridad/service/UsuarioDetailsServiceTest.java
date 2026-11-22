@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.laramadita.backend.turnos.service.TurnoService;
 import com.laramadita.backend.usuarios.model.RolNombre;
 import com.laramadita.backend.usuarios.model.UsuariosFixture;
 import com.laramadita.backend.usuarios.repository.UsuarioRepository;
@@ -18,7 +19,30 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 class UsuarioDetailsServiceTest {
 
 	UsuarioRepository usuarios = mock(UsuarioRepository.class);
-	UsuarioDetailsService service = new UsuarioDetailsService(usuarios);
+	TurnoService turnos = mock(TurnoService.class);
+	UsuarioDetailsService service = new UsuarioDetailsService(usuarios, turnos);
+
+	@Test
+	void laFuncionTemporalDelTurnoSeSumaAlRolPermanente() {
+		var mesero = usuario(7, "mesero1", RolNombre.MESERO, true);
+		when(usuarios.findByUsername("mesero1")).thenReturn(Optional.of(mesero));
+		when(turnos.funcionActualDe(mesero)).thenReturn("SUPERVISOR");
+
+		assertThat(service.loadUserByUsername("mesero1").getAuthorities())
+				.extracting(GrantedAuthority::getAuthority)
+				.containsExactly("ROLE_MESERO", "ROLE_SUPERVISOR");
+	}
+
+	@Test
+	void sinFuncionTemporalSoloQuedaElRolPermanente() {
+		var cocina = usuario(8, "cocina1", RolNombre.COCINA, true);
+		when(usuarios.findByUsername("cocina1")).thenReturn(Optional.of(cocina));
+		when(turnos.funcionActualDe(cocina)).thenReturn("COCINA");
+
+		assertThat(service.loadUserByUsername("cocina1").getAuthorities())
+				.extracting(GrantedAuthority::getAuthority)
+				.containsExactly("ROLE_COCINA");
+	}
 
 	@Test
 	void construyeLaAutoridadDelRolOficialEnFormatoAscii() {

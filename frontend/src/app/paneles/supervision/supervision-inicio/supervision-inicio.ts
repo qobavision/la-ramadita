@@ -7,18 +7,23 @@ import { Icono, NombreIcono } from '../../../shared/ui/icono/icono';
 import { OpcionSegmento, Segmento } from '../../../shared/ui/segmento/segmento';
 import { ColumnaTabla, TablaListado } from '../../../shared/ui/tabla-listado/tabla-listado';
 import { TurnosService } from '../../../turnos/turnos.service';
-import { ZonasService } from '../../../zonas/zonas.service';
+import { MesaSalon } from '../../../atencion/atencion.models';
+import { AtencionesService } from '../../../atencion/atenciones.service';
+import { CajaService } from '../../../caja/caja.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TiempoRealService } from '../../../core/tiempo-real/tiempo-real.service';
 import { SupervisionDemo } from '../datos/supervision.demo';
 import { PersonalTurno, estadoStockDe, formatoSoles } from '../datos/supervision.models';
 import {
   CajaMonitoreo,
   FiltroMesasInicio,
   PedidoCocinaMonitoreo,
+  cajasMonitoreoDe,
   cajasMonitoreoIniciales,
   claseEstadoCocinaInicio,
   cocinaMonitoreoInicial,
   filtrarMesasMonitoreo,
-  mesasMonitoreoDe,
+  mesasMonitoreoDeSalon,
   resumenProductos,
   textoOpcional,
   totalMesa,
@@ -42,18 +47,38 @@ export class SupervisionInicio {
   private readonly turnosApi = inject(TurnosService);
   private readonly comprasApi = inject(ComprasService);
   private readonly insumosApi = inject(InsumosService);
-  private readonly zonasApi = inject(ZonasService);
+  private readonly atencionesApi = inject(AtencionesService);
+  private readonly cajaApi = inject(CajaService);
 
   constructor() {
     this.turnosApi.cargarPersonal().subscribe({ error: () => undefined });
     this.comprasApi.cargar().subscribe({ error: () => undefined });
     this.insumosApi.cargar().subscribe({ error: () => undefined });
-    this.zonasApi.cargarMesas().subscribe({ error: () => undefined });
+    this.cargarOperacion();
+    // Tiempo real: ocupación de mesas y cajas al abrir, pedir cuenta, cobrar o liberar.
+    inject(TiempoRealService)
+      .escuchar(['salon', 'caja'])
+      .pipe(takeUntilDestroyed())
+      .subscribe((evento) => {
+        if (['SALON_ACTUALIZADO', 'CUENTA_PAGADA', 'CONECTADO'].includes(evento.tipo)) {
+          this.cargarOperacion();
+        }
+      });
   }
+
+  private cargarOperacion(): void {
+    this.atencionesApi.salon().subscribe({ next: (mesas) => this.salon.set(mesas), error: () => undefined });
+    this.atencionesApi.activas().subscribe({ next: (lista) => this.enCurso.set(lista.length), error: () => undefined });
+    this.cajaApi.sesiones().subscribe({ next: (s) => this.cajas.set(cajasMonitoreoDe(s)), error: () => undefined });
+  }
+
+  /** Salón real (M06): ocupación, mesero, atención, tiempo y consumo. */
+  private readonly salon = signal<MesaSalon[]>([]);
+  private readonly enCurso = signal(0);
 
   protected readonly cajas = signal<CajaMonitoreo[]>(cajasMonitoreoIniciales());
   protected readonly cocina = signal<PedidoCocinaMonitoreo[]>(cocinaMonitoreoInicial());
-  protected readonly mesas = computed(() => mesasMonitoreoDe(this.zonasApi.mesas()));
+  protected readonly mesas = computed(() => mesasMonitoreoDeSalon(this.salon()));
   protected readonly filtroMesas = signal<FiltroMesasInicio>('Todas');
   protected readonly pedidoDetalle = signal<PedidoCocinaMonitoreo | null>(null);
 
@@ -81,7 +106,7 @@ export class SupervisionInicio {
     return [
       {
         etiqueta: 'Pedidos en curso',
-        valor: String(this.demo.pedidosEnCurso()),
+        valor: String(this.enCurso()),
         icono: 'pedidos',
       },
       {

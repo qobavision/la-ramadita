@@ -1,0 +1,308 @@
+// Panel de mesero (M06/M07): salón, toma de pedido y atenciones en curso.
+// Usa los mismos tokens que el resto de paneles (--lr-*).
+
+// Salón: mesas como fichas táctiles
+.lr-salon {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.lr-mesa {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 110px;
+  padding: 14px;
+  border: 1px solid var(--lr-linea);
+  border-left: 5px solid var(--lr-verde);
+  border-radius: 16px;
+  background: var(--lr-papel);
+  box-shadow: var(--lr-sombra);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  touch-action: manipulation;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--lr-naranja);
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  small {
+    font-size: 12px;
+    color: var(--lr-gris);
+  }
+
+  &--ocupada {
+    border-left-color: var(--lr-naranja);
+  }
+
+  &--pendiente {
+    border-left-color: var(--lr-rojo);
+  }
+}
+
+.lr-mesa__cabecera {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  strong {
+    font-size: 17px;
+  }
+}
+
+.lr-mesa__estado {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lr-gris);
+}
+
+.lr-mesa__dato {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Atención: carta a la izquierda, pedido a la derecha
+.lr-atencion {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lr-atencion__carta,
+.lr-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+  }
+}
+
+.lr-atencion__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lr-productos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.lr-producto {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 84px;
+  padding: 12px;
+  border: 1px solid var(--lr-linea);
+  border-radius: 14px;
+  background: var(--lr-papel);
+  color: inherit;
+  text-align: left;
+  touch-action: manipulation;
+
+  strong {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  span {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--lr-naranja);
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    border-color: var(--lr-naranja);
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--agotado span {
+    color: var(--lr-rojo);
+  }
+}
+
+@media (min-width: 901px) {
+  .lr-ticket {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+.lr-ticket__linea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--lr-linea);
+}
+
+.lr-ticket__producto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+
+  small {
+    color: var(--lr-gris);
+  }
+
+  &--cancelado {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+}
+
+.lr-ticket__controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .form-control {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.lr-cantidad {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--lr-linea);
+  border-radius: 999px;
+
+  button {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: #f4efe8;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--lr-tinta);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+  }
+
+  span {
+    min-width: 32px;
+    font-weight: 800;
+    text-align: center;
+  }
+}
+
+.lr-ticket__envio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #faf7f3;
+
+  > small {
+    font-weight: 800;
+    color: var(--lr-gris);
+  }
+}
+
+.lr-ticket__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--lr-linea);
+
+  span {
+    font-size: 13px;
+    color: var(--lr-gris);
+  }
+
+  strong {
+    font-size: 18px;
+  }
+
+  &--consumo strong {
+    color: var(--lr-naranja);
+  }
+}
+
+// Pedidos: tarjetas de atenciones en curso
+.lr-pedido {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--lr-naranja);
+    outline: none;
+  }
+
+  > small {
+    color: var(--lr-gris);
+  }
+}
+
+.lr-pedido__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  strong {
+    font-size: 16px;
+  }
+}
+
+.lr-pedido__conteo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--lr-gris);
+
+  strong {
+    color: var(--lr-tinta);
+  }
+}

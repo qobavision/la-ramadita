@@ -1,0 +1,101 @@
+<app-encabezado-pagina
+  eyebrow="Salón"
+  titulo="Cuentas"
+  descripcion="Precuenta del consumo y pedido de cobro a Caja. Si el cliente pide algo más, reabre la cuenta."
+/>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Estado de la cuenta" [opciones]="filtros" [(valor)]="filtro" />
+  <app-segmento etiqueta="Filtrar atenciones" [opciones]="filtrosMesero" [(valor)]="mesero" />
+</div>
+
+@if (!cargando() && visibles().length === 0) {
+  <section class="lr-tarjeta">
+    <app-estado-vacio
+      icono="ventas"
+      [titulo]="filtro() === 'EN_CAJA' ? 'No hay cuentas esperando cobro' : 'No hay cuentas por pedir'"
+      [descripcion]="
+        filtro() === 'EN_CAJA'
+          ? 'Cuando pidas la cuenta de una mesa aparecerá aquí hasta que Caja la cobre.'
+          : 'Las atenciones con productos enviados a Cocina aparecerán aquí para pedir su cuenta.'
+      "
+    />
+  </section>
+} @else {
+  <div class="lr-rejilla lr-rejilla--ancha">
+    @for (a of visibles(); track a.id) {
+      <article class="lr-tarjeta lr-pedido">
+        <header class="lr-pedido__cabecera">
+          <strong>{{ a.identificacion }}</strong>
+          <span class="lr-estado" [class.lr-estado--alerta]="a.estado === 'PENDIENTE_PAGO'" [class.lr-estado--abierta]="a.estado === 'ABIERTA'">
+            {{ a.estado === 'PENDIENTE_PAGO' ? 'En caja' : 'Abierta' }}
+          </span>
+        </header>
+        <small>{{ a.zona ?? 'Para llevar' }} · {{ a.mesero }} · {{ tiempo(a.inicio) }}</small>
+        @if (a.itemsBorrador > 0) {
+          <small class="text-warning">{{ a.itemsBorrador }} producto(s) en borrador sin enviar a Cocina.</small>
+        }
+        <div class="lr-ticket__total">
+          <span>Consumo</span>
+          <strong>{{ soles(a.total) }}</strong>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="verPrecuenta(a.id)">Precuenta</button>
+          @if (a.estado === 'ABIERTA') {
+            <button type="button" class="btn btn-sm btn-primary" [disabled]="ocupado()" (click)="pedirCuenta(a.id)">
+              Pedir cuenta
+            </button>
+          } @else {
+            <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="ocupado()" (click)="reabrir(a.id)">
+              Reabrir para agregar
+            </button>
+          }
+          <a class="btn btn-sm btn-link" [routerLink]="['/mesero', 'atencion', a.id]">Ver atención</a>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (precuenta(); as p) {
+  <app-dialogo eyebrow="Cuenta" titulo="Precuenta" (cerrar)="precuenta.set(null)">
+    <article class="lr-boleta">
+      <header class="lr-boleta__cabecera">
+        <strong>La Ramadita · {{ p.unidad }}</strong>
+        <span>Precuenta</span>
+      </header>
+      <dl class="lr-boleta__datos">
+        <div><dt>Fecha</dt><dd>{{ fecha(ahora()) }}</dd></div>
+        <div><dt>Atención</dt><dd>{{ p.identificacion }}</dd></div>
+        <div><dt>Mesero</dt><dd>{{ p.mesero }}</dd></div>
+      </dl>
+      <table class="lr-boleta__tabla">
+        <thead>
+          <tr><th>Cant.</th><th>Producto</th><th class="text-end">P. unit.</th><th class="text-end">Importe</th></tr>
+        </thead>
+        <tbody>
+          @for (l of lineas(); track l.id) {
+            <tr>
+              <td>{{ l.cantidad }}</td>
+              <td>{{ l.producto }}</td>
+              <td class="text-end">{{ soles(l.precioUnitario) }}</td>
+              <td class="text-end">{{ soles(l.subtotal) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="lr-boleta__total"><span>Total</span><strong>{{ soles(p.totalEnviado) }}</strong></div>
+      <p class="lr-boleta__pie">Precuenta: no es comprobante de pago.</p>
+    </article>
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="imprimir()">Imprimir</button>
+      @if (p.estado === 'ABIERTA') {
+        <button type="button" class="btn btn-primary" [disabled]="ocupado()" (click)="pedirCuenta(p.id)">Pedir cuenta</button>
+      }
+    </div>
+  </app-dialogo>
+}

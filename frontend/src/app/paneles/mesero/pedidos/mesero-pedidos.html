@@ -1,0 +1,57 @@
+<app-encabezado-pagina
+  eyebrow="Salón"
+  titulo="Pedidos"
+  descripcion="Atenciones en curso: lo que falta enviar, lo que está en cocina y lo preparado."
+>
+  <button
+    acciones
+    type="button"
+    class="btn btn-primary d-inline-flex align-items-center gap-2"
+    [disabled]="ocupado()"
+    (click)="paraLlevar()"
+  >
+    <app-icono nombre="mas" [tamano]="16" />
+    Para llevar
+  </button>
+</app-encabezado-pagina>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Filtrar atenciones" [opciones]="filtros" [(valor)]="filtro" />
+</div>
+
+@if (!cargando() && visibles().length === 0) {
+  <section class="lr-tarjeta">
+    <app-estado-vacio
+      icono="pedidos"
+      titulo="No hay atenciones en curso"
+      descripcion="Abre una mesa desde Mesas o inicia un pedido para llevar."
+    />
+  </section>
+} @else {
+  <div class="lr-rejilla lr-rejilla--ancha">
+    @for (a of visibles(); track a.id) {
+      <a class="lr-tarjeta lr-pedido" [routerLink]="['/mesero', 'atencion', a.id]">
+        <header class="lr-pedido__cabecera">
+          <strong>{{ a.identificacion }}</strong>
+          <span class="lr-estado" [class.lr-estado--alerta]="a.estado === 'PENDIENTE_PAGO'" [class.lr-estado--abierta]="a.estado === 'ABIERTA'">
+            {{ a.estado === 'PENDIENTE_PAGO' ? 'Por cobrar' : 'Abierta' }}
+          </span>
+        </header>
+        <small>{{ a.zona ?? 'Para llevar' }} · {{ a.mesero }} · {{ tiempo(a.inicio) }}</small>
+        <div class="lr-pedido__conteo">
+          <span><strong>{{ a.itemsBorrador }}</strong> en borrador</span>
+          <span><strong>{{ a.itemsPendientes }}</strong> en cocina</span>
+          <span><strong>{{ a.itemsPreparados }}</strong> preparados</span>
+        </div>
+        <div class="lr-ticket__total">
+          <span>Consumo</span>
+          <strong>{{ soles(a.total) }}</strong>
+        </div>
+      </a>
+    }
+  </div>
+}

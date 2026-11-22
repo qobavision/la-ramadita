@@ -22,6 +22,7 @@ interface TurnoApi {
   horaFin: string;
   responsable: string;
   cerradoPor?: string;
+  cierreSolicitadoPor?: string;
 }
 
 interface PersonalApi {
@@ -141,7 +142,9 @@ function mapearTurno(api: TurnoApi): TurnoOperativo {
     horaFin: horaCorta(api.horaFin),
     estado,
     caja,
-    alerta: null,
+    alerta: api.cierreSolicitadoPor && api.estado === 'EN_CIERRE'
+      ? `Finalización pedida por ${api.cierreSolicitadoPor}: no se aceptan nuevas atenciones. El turno se cerrará solo al cobrar las que quedan y cerrar la caja.`
+      : null,
     responsable: api.responsable ?? '',
     cerradoPor: api.cerradoPor ?? '',
   };

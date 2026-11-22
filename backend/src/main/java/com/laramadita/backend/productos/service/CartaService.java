@@ -96,9 +96,13 @@ public class CartaService {
 
 	public CartaResponse marcarVigente(Integer id) {
 		Carta carta = buscarConDetalles(id);
-		cartas.quitarVigenteDe(carta.getAmbito());
-		cartas.flush();
-		carta.marcarVigente();
+		// Si ya es la vigente no se toca: el update masivo la desmarcaría en la base y,
+		// como en memoria ya estaba en true, Hibernate no volvería a escribirla.
+		if (!carta.isVigente()) {
+			cartas.quitarVigenteDe(carta.getAmbito());
+			cartas.flush();
+			carta.marcarVigente();
+		}
 		return CartaResponse.de(carta);
 	}
 

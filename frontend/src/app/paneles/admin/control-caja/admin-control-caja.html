@@ -12,14 +12,18 @@
 <app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
 
 <section class="lr-rejilla mb-4" aria-label="Resumen de caja">
-  @for (kpi of indicadores; track kpi.etiqueta) {
+  @for (kpi of indicadores; track kpi.etiqueta; let i = $index) {
     <article class="lr-kpi">
       <span>{{ kpi.etiqueta }}</span>
-      <strong aria-label="Sin datos">—</strong>
+      <strong>{{ valores()[i] }}</strong>
       <small>{{ kpi.nota }}</small>
     </article>
   }
 </section>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
 
 <div class="lr-herramientas">
   <app-segmento etiqueta="Estado de la caja" [opciones]="filtrosCaja" [(valor)]="filtroCaja" />
@@ -32,11 +36,38 @@
 
 <app-tabla-listado
   [columnas]="columnas"
-  [total]="0"
+  [total]="visibles().length"
   vacioIcono="caja"
   vacioTitulo="Sin cajas en el periodo"
   vacioDescripcion="Cuando el personal de Caja abra y cierre cajas, aparecerán aquí con su responsable, turno, montos y diferencias."
-/>
+>
+  @for (s of visibles(); track s.id) {
+    <tr filas>
+      <td>
+        <span
+          class="lr-estado"
+          [class.lr-estado--abierta]="s.estado === 'ABIERTA'"
+          [class.lr-estado--alerta]="s.estado === 'CERRADA' && s.diferencia !== 0"
+        >
+          {{ s.estado === 'ABIERTA' ? 'Abierta' : s.diferencia !== 0 ? 'Con diferencia' : 'Cerrada' }}
+        </span>
+      </td>
+      <td>{{ s.responsable }}</td>
+      <td>#{{ s.turnoId }} · {{ s.unidad }}</td>
+      <td>{{ fechaHora(s.apertura) }}</td>
+      <td>{{ fechaHora(s.cierre) }}</td>
+      <td class="text-end">{{ soles(s.totalCobrado) }}</td>
+      <td class="text-end">{{ soles(s.efectivoEsperado) }}</td>
+      <td class="text-end">{{ s.efectivoContado == null ? '—' : soles(s.efectivoContado) }}</td>
+      <td class="text-end">{{ s.diferencia == null ? '—' : soles(s.diferencia) }}</td>
+      <td class="text-end">
+        <button type="button" class="lr-accion" title="Ver detalle" (click)="seleccion.set(s)">
+          <app-icono nombre="ver" [tamano]="16" />
+        </button>
+      </td>
+    </tr>
+  }
+</app-tabla-listado>
 
 <h2 class="lr-seccion">Detalle de la caja seleccionada</h2>
 
@@ -53,11 +84,17 @@
       @for (campo of detalle; track campo) {
         <div>
           <span>{{ campo }}</span>
-          <strong aria-label="Sin datos">—</strong>
+          <strong>{{ seleccion() ? valorDetalle(campo, seleccion()!) : '—' }}</strong>
         </div>
       }
     </div>
-    <footer>Selecciona una caja del listado para ver su detalle.</footer>
+    <footer>
+      @if (seleccion(); as s) {
+        Caja #{{ s.id }} · {{ s.responsable }}{{ s.observacionCierre ? ' · ' + s.observacionCierre : '' }}
+      } @else {
+        Selecciona una caja del listado para ver su detalle.
+      }
+    </footer>
   </article>
 
   <article class="lr-tarjeta lr-bloque">
@@ -72,10 +109,88 @@
       @for (metodo of metodosPago; track metodo) {
         <div>
           <span>{{ metodo }}</span>
-          <strong aria-label="Sin datos">—</strong>
+          <strong>{{ seleccion() ? totalMetodo(metodo, seleccion()!) : '—' }}</strong>
         </div>
       }
     </div>
-    <footer>Disponible con control de caja (M10).</footer>
+    <footer>{{ seleccion() ? 'Total cobrado ' + soles(seleccion()!.totalCobrado) : 'Selecciona una caja del listado.' }}</footer>
   </article>
 </div>
+
+@if (seleccion(); as s) {
+  <h2 class="lr-seccion">Pagos de la caja #{{ s.id }}</h2>
+  @if (error(); as texto) {
+    <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  }
+  <app-tabla-listado
+    [columnas]="columnasPagos"
+    [total]="s.pagos.length"
+    vacioIcono="pago"
+    vacioTitulo="Sin pagos"
+    vacioDescripcion="Los cobros registrados en esta caja aparecerán aquí."
+  >
+    @for (p of s.pagos; track p.id) {
+      <tr filas>
+        <td>{{ fechaHora(p.fecha) }}</td>
+        <td>{{ p.identificacion }}</td>
+        <td>{{ etiquetaMetodo(p.metodo) }}</td>
+        <td>{{ p.cajero }}</td>
+        <td class="text-end">{{ soles(p.monto) }}</td>
+        <td class="text-end">
+          @if (s.estado === 'ABIERTA') {
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="pedirAnular(p)">Anular</button>
+          } @else {
+            <span class="text-muted small">Caja cerrada</span>
+          }
+        </td>
+      </tr>
+    }
+  </app-tabla-listado>
+
+  @if (s.anulados.length) {
+    <h2 class="lr-seccion">Pagos anulados</h2>
+    <app-tabla-listado [columnas]="columnasAnulados" [total]="s.anulados.length">
+      @for (p of s.anulados; track p.id) {
+        <tr filas>
+          <td>{{ p.identificacion }}</td>
+          <td>{{ etiquetaMetodo(p.metodo) }} · {{ soles(p.monto) }}</td>
+          <td>{{ p.cajero }}</td>
+          <td>{{ p.anuladoPor }}</td>
+          <td>{{ fechaHora(p.fechaAnulacion) }}</td>
+          <td>{{ p.motivoAnulacion }}</td>
+        </tr>
+      }
+    </app-tabla-listado>
+  }
+}
+
+@if (anulando(); as p) {
+  <app-dialogo eyebrow="Control de caja" titulo="Anular pago" (cerrar)="anulando.set(null)">
+    <p class="mb-2">
+      {{ p.identificacion }} · {{ etiquetaMetodo(p.metodo) }} · <strong>{{ soles(p.monto) }}</strong>
+      (registró {{ p.cajero }}).
+    </p>
+    <p class="small text-muted mb-3">
+      El pago no se borra: queda anulado con tu nombre, la fecha y el motivo. Si la cuenta estaba pagada vuelve a
+      pendiente de cobro y su boleta queda anulada.
+    </p>
+    <label class="form-label" for="motivo-anulacion">Motivo</label>
+    <textarea
+      id="motivo-anulacion"
+      class="form-control mb-3"
+      rows="2"
+      maxlength="300"
+      [value]="motivo()"
+      (input)="motivo.set($any($event.target).value)"
+    ></textarea>
+    @if (errorAnular(); as texto) {
+      <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+    }
+    <div class="lr-formulario__pie">
+      <button type="button" class="btn btn-outline-secondary" (click)="anulando.set(null)">Cancelar</button>
+      <button type="button" class="btn btn-danger" [disabled]="!motivo().trim() || ocupado()" (click)="anular()">
+        Anular pago
+      </button>
+    </div>
+  </app-dialogo>
+}

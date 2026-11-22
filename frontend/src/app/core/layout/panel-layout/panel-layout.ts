@@ -1,3 +1,4 @@
+import { NgComponentOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -24,7 +25,7 @@ import { ConfiguracionPanel } from './panel.config';
 @Component({
   selector: 'app-panel-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Icono],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgComponentOutlet, Icono],
   templateUrl: './panel-layout.html',
   styleUrl: './panel-layout.scss',
 })

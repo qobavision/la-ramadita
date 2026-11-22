@@ -1,19 +1,167 @@
 <app-encabezado-pagina
   eyebrow="Monitor de producción"
   titulo="Pedidos de cocina"
-  descripcion="Tablero de pedidos por estado. Se actualizará en tiempo real cuando se implemente el módulo de cocina (M08)."
+  descripcion="Los pedidos llegan solos desde el salón. Marca cada producto como listo y el mesero recibe el aviso."
 >
-  <span acciones class="lr-pildora">Sin conexión en tiempo real</span>
+  <span acciones class="lr-estado" [class.lr-estado--activo]="conectado()" [class.lr-estado--alerta]="!conectado()">
+    {{ conectado() ? 'En vivo' : 'Reconectando…' }}
+  </span>
+  <button
+    acciones
+    type="button"
+    class="btn btn-sm"
+    [class.btn-outline-secondary]="!sonidoActivo()"
+    [class.btn-outline-primary]="sonidoActivo()"
+    [attr.aria-pressed]="sonidoActivo()"
+    (click)="alternarSonido()"
+  >
+    {{ sonidoActivo() ? 'Sonido activado' : 'Sonido silenciado' }}
+  </button>
 </app-encabezado-pagina>
 
-<section class="lr-rejilla lr-rejilla--ancha" aria-label="Tablero de pedidos">
-  @for (c of columnas; track c.clave) {
-    <article [class]="'lr-tarjeta lr-columna lr-columna--' + c.clave">
-      <header>
-        {{ c.titulo }}
-        <small>0</small>
-      </header>
-      <div>{{ c.detalle }}<br />Próximamente.</div>
-    </article>
+@if (opcionesZona().length > 2 || zona()) {
+  <app-segmento class="mb-3" etiqueta="Filtrar por zona" [opciones]="opcionesZona()" [valor]="zona()" (valorChange)="elegirZona($event)" />
+}
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<section class="lr-cocina-avisos" aria-live="polite" aria-label="Avisos de cocina">
+  @for (a of avisos(); track a.id) {
+    <div
+      class="lr-cocina-aviso"
+      role="status"
+      [class.lr-cocina-aviso--modificado]="a.tipo === 'PEDIDO_MODIFICADO'"
+      [class.lr-cocina-aviso--cancelado]="a.tipo === 'PEDIDO_CANCELADO'"
+    >
+      <app-icono [nombre]="a.tipo === 'PEDIDO_NUEVO' ? 'cocina' : 'alerta'" [tamano]="18" />
+      <span><strong>{{ a.titulo }}</strong> {{ a.texto }}</span>
+      <button type="button" class="lr-accion" title="Descartar aviso" (click)="descartar(a.id)">
+        <app-icono nombre="cerrar" [tamano]="14" />
+      </button>
+    </div>
   }
 </section>
+
+<div class="lr-cocina">
+  <section class="lr-tarjeta lr-columna lr-columna--pendiente" aria-label="Comandas pendientes">
+    <header>
+      Pendientes
+      <small>{{ pendientes().length }}</small>
+    </header>
+    @if (pendientes().length === 0) {
+      <div>{{ cargando() ? 'Cargando pedidos…' : 'No hay pedidos por preparar.' }}</div>
+    } @else {
+      <div class="lr-cocina__comandas">
+        @for (c of pendientes(); track c.pedidoId) {
+          <article
+            class="lr-comanda"
+            [class.lr-comanda--demora]="espera(c) >= demora"
+            [class.lr-comanda--modificada]="c.modificado"
+            [class.lr-comanda--nueva]="destacado(c) === 'PEDIDO_NUEVO'"
+          >
+            <header class="lr-comanda__cabecera">
+              <div>
+                <h3>{{ c.identificacion }}</h3>
+                <small>{{ zonaDe(c) }} · {{ c.mesero }}</small>
+              </div>
+              <span class="lr-comanda__tiempo" [title]="'Enviado a las ' + hora(c.enviado)">
+                <app-icono nombre="reloj" [tamano]="14" />
+                {{ espera(c) }} min
+              </span>
+            </header>
+
+            @if (c.modificado) {
+              <p class="lr-comanda__marca"><app-icono nombre="alerta" [tamano]="14" /> Modificado después del envío</p>
+            }
+
+            <ul class="lr-comanda__lineas">
+              @for (l of c.lineas; track l.id) {
+                <li
+                  class="lr-comanda__linea"
+                  [class.lr-comanda__linea--preparado]="l.estado === 'PREPARADO'"
+                  [class.lr-comanda__linea--cancelado]="l.estado === 'CANCELADO'"
+                  [class.lr-comanda__linea--cambio]="l.modificado && l.estado === 'PENDIENTE'"
+                >
+                  <span class="lr-comanda__cantidad">{{ l.cantidad }}×</span>
+                  <div class="lr-comanda__producto">
+                    <strong>{{ l.producto }}</strong>
+                    @if (l.observacion) {
+                      <em>{{ l.observacion }}</em>
+                    }
+                    @if (l.estado === 'CANCELADO') {
+                      <small class="lr-comanda__cambio">Cancelado: no preparar</small>
+                    } @else if (l.modificado && l.cambio) {
+                      <small class="lr-comanda__cambio">Cambio: {{ l.cambio }}</small>
+                    }
+                  </div>
+                  @switch (l.estado) {
+                    @case ('PENDIENTE') {
+                      <button
+                        type="button"
+                        class="btn btn-success lr-comanda__listo"
+                        [disabled]="ocupado('l' + l.id) || ocupado('c' + c.pedidoId)"
+                        (click)="prepararLinea(l)"
+                      >
+                        Listo
+                      </button>
+                    }
+                    @case ('PREPARADO') {
+                      <span class="lr-estado lr-estado--activo">Preparado</span>
+                    }
+                    @default {
+                      <span class="lr-estado lr-estado--alerta">Cancelado</span>
+                    }
+                  }
+                </li>
+              }
+            </ul>
+
+            @if (lineasPendientes(c) > 1) {
+              <footer class="lr-comanda__pie">
+                <button
+                  type="button"
+                  class="btn btn-outline-success w-100"
+                  [disabled]="ocupado('c' + c.pedidoId)"
+                  (click)="prepararComanda(c)"
+                >
+                  Todo preparado ({{ c.pendientes }})
+                </button>
+              </footer>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="lr-tarjeta lr-columna lr-columna--listo" aria-label="Comandas preparadas">
+    <header>
+      Preparados
+      <small>{{ preparados().length }}</small>
+    </header>
+    @if (preparados().length === 0) {
+      <div>Aquí aparecen los pedidos terminados mientras el mesero los recoge.</div>
+    } @else {
+      <ul>
+        @for (c of preparados(); track c.pedidoId) {
+          <li class="lr-columna__item" [class.lr-columna__item--cancelado]="c.estado === 'CANCELADO'">
+            <strong>
+              {{ c.identificacion }}
+              <span class="lr-estado" [class.lr-estado--activo]="c.estado === 'PREPARADO'" [class.lr-estado--alerta]="c.estado === 'CANCELADO'">
+                {{ etiquetaEstado[c.estado] }}
+              </span>
+            </strong>
+            @if (c.estado === 'PREPARADO') {
+              <small>{{ resumen(c) }}</small>
+              <small>Listo {{ hora(c.listo) }} · {{ zonaDe(c) }} · {{ c.mesero }}</small>
+            } @else {
+              <small>Todos sus productos se cancelaron · {{ zonaDe(c) }}</small>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

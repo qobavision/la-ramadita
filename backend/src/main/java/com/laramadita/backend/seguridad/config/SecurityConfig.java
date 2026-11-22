@@ -79,6 +79,9 @@ public class SecurityConfig {
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(a -> a
 						.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+						// Handshake WebSocket: el navegador no envía Authorization; el JWT
+						// llega como parámetro y lo valida TiempoRealHandshake.
+						.requestMatchers(HttpMethod.GET, "/api/v1/tiempo-real").permitAll()
 						.requestMatchers("/error").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(e -> e

@@ -26,7 +26,8 @@ export interface InsumoApi {
 export interface ProveedorApi {
   id: number;
   nombreRazonSocial: string;
-  tipoDocumento: TipoDocumento;
+  /** Puede venir null en proveedores registrados antes de V7 sin documento. */
+  tipoDocumento: TipoDocumento | null;
   documento: string;
   celular: string | null;
   personaContacto: string | null;

@@ -1,9 +1,9 @@
 <app-encabezado-pagina
   eyebrow="Salón"
   titulo="¿Qué necesitas hacer?"
-  descripcion="Panel táctil para la atención de mesas. Las funciones se habilitarán con los módulos de mesas, pedidos y caja."
+  descripcion="Panel táctil para la atención de mesas y pedidos para llevar."
 >
-  <span acciones class="lr-pildora">Sin turno asignado</span>
+  <span acciones class="lr-pildora">{{ mias().length }} atenciones en curso</span>
 </app-encabezado-pagina>
 
 <section class="lr-rejilla lr-rejilla--ancha" aria-label="Accesos rápidos">
@@ -14,14 +14,33 @@
         <strong>{{ a.etiqueta }}</strong>
         <small>{{ a.detalle }}</small>
       </span>
-      <span class="lr-pildora">Próximamente</span>
+      @if (!a.disponible) {
+        <span class="lr-pildora">Próximamente</span>
+      }
     </a>
   }
 </section>
 
 <h2 class="lr-seccion">Mis mesas</h2>
-<section class="lr-tarjeta lr-vacio">
-  <span class="lr-vacio__icono"><app-icono nombre="mesas" [tamano]="30" /></span>
-  <h2>Sin mesas asignadas</h2>
-  <p>Aquí aparecerán las mesas que estés atendiendo, con su estado y el tiempo transcurrido, cuando se implemente el módulo M06.</p>
-</section>
+@if (mias().length === 0) {
+  <section class="lr-tarjeta lr-vacio">
+    <span class="lr-vacio__icono"><app-icono nombre="mesas" [tamano]="30" /></span>
+    <h2>Sin atenciones en curso</h2>
+    <p>Abre una mesa desde Mesas o inicia un pedido para llevar.</p>
+  </section>
+} @else {
+  <div class="lr-salon">
+    @for (a of mias(); track a.id) {
+      <a class="lr-mesa lr-mesa--ocupada" [class.lr-mesa--pendiente]="a.estado === 'PENDIENTE_PAGO'" [routerLink]="['/mesero', 'atencion', a.id]">
+        <span class="lr-mesa__cabecera">
+          <strong>{{ a.identificacion }}</strong>
+          <span class="lr-mesa__estado">{{ a.estado === 'PENDIENTE_PAGO' ? 'Por cobrar' : 'Abierta' }}</span>
+        </span>
+        <small class="lr-mesa__dato">
+          <app-icono nombre="reloj" [tamano]="12" />
+          {{ tiempo(a.inicio) }} · {{ soles(a.total) }}
+        </small>
+      </a>
+    }
+  </div>
+}

@@ -51,6 +51,14 @@ public class Turno {
 	@Column(name = "estado", nullable = false, length = 20)
 	private EstadoTurno estado = EstadoTurno.ABIERTO;
 
+	/** V15: quien pidió finalizar con atenciones por cobrar o caja abierta. */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "cierre_solicitado_por_usuario_id")
+	private Usuario cierreSolicitadoPor;
+
+	@Column(name = "fecha_cierre_solicitado")
+	private LocalDateTime fechaCierreSolicitado;
+
 	protected Turno() {
 	}
 
@@ -79,6 +87,30 @@ public class Turno {
 		this.estado = EstadoTurno.CERRADO;
 		this.usuarioCierre = usuarioCierre;
 		this.fechaCierre = LocalDateTime.now(ZoneOffset.UTC);
+	}
+
+	/**
+	 * Decisión del equipo: finalizar con mesas por cobrar o caja abierta "cierra
+	 * la puerta". El turno queda en cierre (no se inician nuevas atenciones) y se
+	 * cierra solo cuando se cobra lo que queda y se cierra la caja.
+	 */
+	public void solicitarCierre(Usuario usuario) {
+		if (estado == EstadoTurno.CERRADO) {
+			throw new ReglaNegocioException("El turno ya está cerrado");
+		}
+		this.estado = EstadoTurno.EN_CIERRE;
+		if (cierreSolicitadoPor == null) {
+			this.cierreSolicitadoPor = usuario;
+			this.fechaCierreSolicitado = LocalDateTime.now(ZoneOffset.UTC);
+		}
+	}
+
+	public boolean cierreSolicitado() {
+		return cierreSolicitadoPor != null;
+	}
+
+	public Usuario getCierreSolicitadoPor() {
+		return cierreSolicitadoPor;
 	}
 
 	public Integer getId() {

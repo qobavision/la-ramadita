@@ -13,8 +13,8 @@ export const PANEL_ADMIN: ConfiguracionPanel = {
     { etiqueta: 'Dashboard', icono: 'tablero', ruta: '', disponible: true },
     { etiqueta: 'Empleados', icono: 'empleados', ruta: 'empleados', disponible: true },
     { etiqueta: 'Usuarios y accesos', icono: 'usuarios', ruta: 'usuarios', disponible: true },
-    { etiqueta: 'Reportes / BI', icono: 'reportes', ruta: 'reportes' },
-    { etiqueta: 'Control de caja', icono: 'caja', ruta: 'control-caja' },
+    { etiqueta: 'Reportes / BI', icono: 'reportes', ruta: 'reportes', disponible: true },
+    { etiqueta: 'Control de caja', icono: 'caja', ruta: 'control-caja', disponible: true },
     { etiqueta: 'Accesos operativos', icono: 'accesos', ruta: 'accesos', disponible: true },
   ],
 };

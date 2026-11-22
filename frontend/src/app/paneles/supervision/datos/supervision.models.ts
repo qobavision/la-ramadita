@@ -102,7 +102,8 @@ export interface PedidoDemo {
 export interface ProveedorDemo {
   id: number;
   nombre: string;
-  tipoDocumento: TipoDocumento;
+  /** null en proveedores antiguos sin documento (antes de V7); al editar se elige uno. */
+  tipoDocumento: TipoDocumento | null;
   documento: string;
   telefono: string;
   contacto: string;
@@ -410,7 +411,8 @@ export function coincidePersonalTurno(
     !texto ||
     persona.empleado.toLowerCase().includes(texto) ||
     persona.username.toLowerCase().includes(texto);
-  const rol = persona.funcionActual.toUpperCase();
+  // La función temporal se muestra como "CAJA (temporal)": se compara solo el rol.
+  const rol = persona.funcionActual.toUpperCase().replace(/\s*\(TEMPORAL\)\s*$/, '');
   return coincideTexto && (!funcion || rol === funcion);
 }
 

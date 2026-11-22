@@ -1,0 +1,125 @@
+// Caja (M10): boleta simple y su impresión.
+
+.lr-boleta {
+  max-width: 380px;
+  margin: 0 auto 16px;
+  padding: 18px;
+  border: 1px dashed var(--lr-linea);
+  border-radius: 8px;
+  background: var(--lr-papel);
+  color: var(--lr-tinta);
+  font-size: 13px;
+}
+
+.lr-boleta__cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+  text-align: center;
+
+  strong {
+    font-size: 15px;
+  }
+
+  span {
+    color: var(--lr-gris);
+  }
+}
+
+.lr-boleta__codigo {
+  color: var(--lr-tinta) !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.lr-boleta__anulada {
+  color: var(--lr-rojo) !important;
+  font-weight: 800;
+}
+
+.lr-boleta__datos {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+
+  div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  dt {
+    color: var(--lr-gris);
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+}
+
+.lr-boleta__tabla {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 4px 2px;
+    border-bottom: 1px dashed var(--lr-linea);
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--lr-gris);
+    font-weight: 600;
+  }
+}
+
+.lr-boleta__total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.lr-boleta__pagos {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--lr-gris);
+
+  li {
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+.lr-boleta__pie {
+  margin: 12px 0 0;
+  color: var(--lr-gris);
+  font-size: 11px;
+  text-align: center;
+}
+
+// Al imprimir solo sale la boleta.
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .lr-boleta,
+  .lr-boleta * {
+    visibility: visible;
+  }
+
+  .lr-boleta {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 0;
+    margin: 0;
+  }
+}

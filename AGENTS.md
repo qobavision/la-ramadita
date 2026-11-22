@@ -472,6 +472,10 @@ El inventario aumenta cuando se confirma la recepción de la compra.
 
 
 
+El inventario disminuye cuando Cocina marca un producto como preparado: se descuenta su receta (y la de cada componente de un combo) con un movimiento `SALIDA_RECETA` por insumo. No bloquea a Cocina: si falta stock descuenta hasta cero y anota el faltante.
+
+
+
 El turno no se abre al primer inicio de sesión. Se abre por horario (`America/Lima`) o al arrancar el sistema si la ventana está vigente. La apertura automática no asigna supervisor (`Apertura automática`).
 
 
@@ -481,6 +485,30 @@ El personal del turno son quienes inician sesión con el turno ya abierto. Reing
 
 
 La función temporal no cambia el rol permanente; otorga el panel de esa función durante el turno.
+
+
+
+Con el turno en cierre (`EN_CIERRE`) no se inician nuevas atenciones: solo se atienden y cobran las mesas y pedidos para llevar que quedan.
+
+
+
+El turno se puede finalizar aunque queden atenciones sin cobrar o la caja abierta ("se cierra la puerta"): queda `EN_CIERRE` con quien lo pidió, se terminan de atender y cobrar las que quedan, y el turno pasa a `CERRADO` solo cuando no queda nada por cobrar y la caja está cerrada.
+
+
+
+Hay una sola caja abierta por turno (índice `UX_caja_abierta_turno` de V1), compartida por quienes cobran; cada pago y movimiento guarda el usuario que lo registró. Una cuenta se cobra en la caja del turno de su atención.
+
+
+
+Al quedar pagada una cuenta se emite una boleta simple (comprobante simulado, sin SUNAT): serie B001 Restaurante, B002 Pollería, correlativo propio.
+
+
+
+Solo el ADMINISTRADOR anula un pago, con motivo obligatorio, y solo si la caja sigue abierta. El pago no se borra: queda `ANULADO` con quién, cuándo y por qué. Si la cuenta estaba pagada vuelve a pendiente de cobro y su boleta queda anulada.
+
+
+
+Cada línea de pedido guarda el nombre del producto al pedirlo; renombrar un producto no cambia las ventas pasadas.
 
 
 
@@ -567,6 +595,8 @@ Actualmente existen:
 `V13\\\_\\\_turno\\\_asistencia\\\_funcion\\\_temporal.sql`
 
 `V14\\\_\\\_turno\\\_funcion\\\_temporal\\\_supervisor.sql`
+
+`V15\\\_\\\_boleta\\\_anulacion\\\_consumo\\\_y\\\_cierre\\\_turno.sql`
 
 
 

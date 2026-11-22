@@ -1,0 +1,200 @@
+@if (atencion(); as a) {
+  <app-encabezado-pagina
+    [eyebrow]="a.tipo === 'MESA' ? 'Salón · ' + a.zona : 'Para llevar'"
+    [titulo]="a.identificacion"
+    [descripcion]="'Atiende ' + a.mesero + ' · ' + tiempo(a.inicio) + ' · ' + a.unidad"
+  >
+    <a acciones class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" routerLink="/mesero/mesas">
+      <app-icono nombre="volver" [tamano]="16" />
+      Mesas
+    </a>
+  </app-encabezado-pagina>
+
+  @if (error(); as texto) {
+    <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  }
+  @if (a.estado === 'PENDIENTE_PAGO') {
+    <div class="alert alert-warning py-2 small d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+      <span>Cuenta solicitada. La atención está pendiente de pago en Caja.</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="ocupado()" (click)="reabrir()">
+        Reabrir para agregar productos
+      </button>
+    </div>
+  }
+  @if (a.estado === 'CERRADA') {
+    <div class="alert alert-success py-2 small" role="status">Atención cerrada. La cuenta ya fue cobrada o liberada.</div>
+  }
+
+  <div class="lr-atencion">
+    <section class="lr-tarjeta lr-atencion__carta" aria-label="Carta del día">
+      <header class="lr-atencion__cabecera">
+        <h2>Carta del día</h2>
+        <label class="lr-buscador">
+          <app-icono nombre="buscar" [tamano]="16" />
+          <input type="search" placeholder="Buscar producto" [value]="busqueda()" (input)="buscar($event)" />
+        </label>
+      </header>
+
+      @if (errorCarta(); as texto) {
+        <app-estado-vacio icono="carta" titulo="Carta no disponible" [descripcion]="texto" />
+      } @else {
+        <app-segmento etiqueta="Sección de la carta" [opciones]="secciones()" [(valor)]="seccion" />
+        <div class="lr-productos">
+          @for (p of productos(); track p.id) {
+            <button
+              type="button"
+              class="lr-producto"
+              [class.lr-producto--agotado]="p.estado === 'AGOTADO'"
+              [disabled]="!abierta() || ocupado() || p.estado === 'AGOTADO'"
+              (click)="agregar(p)"
+            >
+              <strong>{{ p.nombre }}</strong>
+              <span>{{ p.estado === 'AGOTADO' ? 'Agotado' : soles(p.precioEfectivo) }}</span>
+            </button>
+          } @empty {
+            <p class="lr-nota">No hay productos que coincidan.</p>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="lr-tarjeta lr-ticket" aria-label="Pedido de la atención">
+      <h2>Pedido en borrador</h2>
+      @for (l of borrador(); track l.id) {
+        <div class="lr-ticket__linea">
+          <div class="lr-ticket__producto">
+            <strong>{{ l.producto }}</strong>
+            <span>{{ soles(l.subtotal) }}</span>
+          </div>
+          <div class="lr-ticket__controles">
+            <div class="lr-cantidad">
+              <button type="button" aria-label="Quitar uno" [disabled]="ocupado()" (click)="cambiarCantidad(l, -1)">−</button>
+              <span>{{ l.cantidad }}</span>
+              <button type="button" aria-label="Agregar uno" [disabled]="ocupado()" (click)="cambiarCantidad(l, 1)">+</button>
+            </div>
+            <input
+              class="form-control form-control-sm"
+              type="text"
+              maxlength="500"
+              placeholder="Observación (opcional)"
+              [value]="l.observacion ?? ''"
+              [disabled]="ocupado()"
+              (change)="cambiarObservacion(l, $event)"
+            />
+            <button type="button" class="lr-accion" title="Quitar producto" [disabled]="ocupado()" (click)="quitar(l)">
+              <app-icono nombre="eliminar" [tamano]="16" />
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <p class="lr-nota">Toca un producto de la carta para agregarlo.</p>
+      }
+
+      <div class="lr-ticket__total">
+        <span>Total del borrador</span>
+        <strong>{{ soles(a.totalBorrador) }}</strong>
+      </div>
+      <button
+        type="button"
+        class="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2"
+        [disabled]="!abierta() || ocupado() || borrador().length === 0"
+        (click)="enviar()"
+      >
+        <app-icono nombre="cocina" [tamano]="18" />
+        Enviar a cocina
+      </button>
+
+      <h2>Enviado a cocina</h2>
+      @for (p of a.enviados; track p.id; let i = $index) {
+        <div class="lr-ticket__envio">
+          <small>Envío {{ i + 1 }} · {{ hora(p.fechaEnvio) }}</small>
+          @for (l of p.detalles; track l.id) {
+            <div class="lr-ticket__producto" [class.lr-ticket__producto--cancelado]="l.estadoItem === 'CANCELADO'">
+              <span>
+                {{ l.cantidad }} × {{ l.producto }}
+                @if (l.observacion) {
+                  <small>· {{ l.observacion }}</small>
+                }
+              </span>
+              <span
+                class="lr-estado"
+                [class.lr-estado--activo]="l.estadoItem === 'ACTIVO' && l.estadoCocina === 'PREPARADO'"
+                [class.lr-estado--alerta]="l.estadoItem === 'CANCELADO'"
+              >
+                {{ l.estadoItem === 'CANCELADO' ? 'Cancelado' : l.estadoCocina === 'PREPARADO' ? 'Preparado' : 'En cocina' }}
+              </span>
+            </div>
+            @if (cambiableEnCocina(l)) {
+              <!-- RN-06: mientras Cocina no lo prepare, se puede cambiar o cancelar; Cocina ve el cambio resaltado. -->
+              <div class="lr-ticket__controles">
+                <div class="lr-cantidad">
+                  <button type="button" aria-label="Quitar uno" [disabled]="ocupado() || l.cantidad === 1" (click)="cambiarCantidad(l, -1)">−</button>
+                  <span>{{ l.cantidad }}</span>
+                  <button type="button" aria-label="Agregar uno" [disabled]="ocupado()" (click)="cambiarCantidad(l, 1)">+</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" [disabled]="ocupado()" (click)="cancelando.set(l)">
+                  Cancelar
+                </button>
+              </div>
+            }
+          }
+        </div>
+      } @empty {
+        <p class="lr-nota">Aún no se envió nada a cocina.</p>
+      }
+
+      <div class="lr-ticket__total lr-ticket__total--consumo">
+        <span>Consumo acumulado</span>
+        <strong>{{ soles(a.totalEnviado) }}</strong>
+      </div>
+
+      @if (abierta()) {
+        @if (a.enviados.length > 0) {
+          <button type="button" class="btn btn-outline-primary w-100" [disabled]="ocupado()" (click)="confirmar.set('cuenta')">
+            Pedir cuenta
+          </button>
+        } @else {
+          <button type="button" class="btn btn-outline-secondary w-100" [disabled]="ocupado()" (click)="confirmar.set('liberar')">
+            Liberar sin consumo
+          </button>
+        }
+      }
+    </section>
+  </div>
+
+  @if (cancelando(); as linea) {
+    <app-dialogo [eyebrow]="a.identificacion" titulo="Cancelar producto enviado" (cerrar)="cancelando.set(null)">
+      <p>
+        Se cancelará <strong>{{ linea.cantidad }} × {{ linea.producto }}</strong>. Cocina verá el producto tachado como
+        cancelado y no se cobrará.
+      </p>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancelando.set(null)">Volver</button>
+        <button type="button" class="btn btn-danger" (click)="confirmarCancelacion()">Cancelar producto</button>
+      </div>
+    </app-dialogo>
+  }
+
+  @if (confirmar(); as accion) {
+    <app-dialogo
+      [eyebrow]="a.identificacion"
+      [titulo]="accion === 'cuenta' ? 'Pedir la cuenta' : 'Liberar sin consumo'"
+      (cerrar)="confirmar.set(null)"
+    >
+      <p>
+        @if (accion === 'cuenta') {
+          La atención pasará a <strong>pendiente de pago</strong> por {{ soles(a.totalEnviado) }} y ya no se podrán agregar productos.
+        } @else {
+          Se cerrará la atención sin consumo y la mesa quedará libre.
+        }
+      </p>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="confirmar.set(null)">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="confirmarAccion()">Confirmar</button>
+      </div>
+    </app-dialogo>
+  }
+} @else if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  <a class="btn btn-outline-secondary" routerLink="/mesero/mesas">Volver a mesas</a>
+}

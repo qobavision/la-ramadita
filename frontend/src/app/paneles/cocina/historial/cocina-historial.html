@@ -1,0 +1,72 @@
+<app-encabezado-pagina
+  eyebrow="Monitor de producción"
+  titulo="Historial"
+  [descripcion]="historial().turno ?? 'Pedidos enviados a cocina durante el turno.'"
+/>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<section class="lr-rejilla lr-rejilla--dashboard mb-3" aria-label="Resumen del turno">
+  <article class="lr-kpi lr-kpi--lleno">
+    <span>Comandas</span>
+    <strong>{{ resumenTurno().total }}</strong>
+  </article>
+  <article class="lr-kpi lr-kpi--lleno">
+    <span>Preparadas</span>
+    <strong>{{ resumenTurno().preparadas }}</strong>
+  </article>
+  <article class="lr-kpi lr-kpi--lleno">
+    <span>Tiempo promedio</span>
+    <strong>{{ resumenTurno().promedio === null ? '—' : resumenTurno().promedio + ' min' }}</strong>
+  </article>
+</section>
+
+<div class="lr-filtros mb-3">
+  <input
+    type="search"
+    class="form-control"
+    placeholder="Buscar por mesa, zona, mesero o producto"
+    aria-label="Buscar en el historial"
+    [ngModel]="busqueda()"
+    (ngModelChange)="busqueda.set($event)"
+  />
+  <app-segmento etiqueta="Filtrar por estado" [opciones]="filtrosEstado" [valor]="filtroEstado()" (valorChange)="filtroEstado.set($event ?? '')" />
+</div>
+
+<app-tabla-listado
+  [columnas]="columnas"
+  [total]="filas().length"
+  [vacioTitulo]="cargando() ? 'Cargando…' : 'Sin comandas'"
+  vacioDescripcion="Aquí aparecen los pedidos enviados a cocina durante el turno."
+  vacioIcono="historial"
+>
+  @for (c of filas(); track c.pedidoId) {
+    <tr filas>
+      <td>{{ hora(c.enviado) }}</td>
+      <td>
+        <strong>{{ c.identificacion }}</strong>
+        <small class="d-block text-secondary">{{ c.zona ?? 'Para llevar' }} · {{ c.mesero }}</small>
+      </td>
+      <td>
+        {{ productos(c) }}
+        @if (c.modificado) {
+          <small class="d-block text-warning-emphasis">Modificado después del envío</small>
+        }
+      </td>
+      <td>
+        <span
+          class="lr-estado"
+          [class.lr-estado--abierta]="c.estado === 'PENDIENTE'"
+          [class.lr-estado--activo]="c.estado === 'PREPARADO'"
+          [class.lr-estado--alerta]="c.estado === 'CANCELADO'"
+        >
+          {{ etiquetaEstado[c.estado] }}
+        </span>
+      </td>
+      <td>{{ c.listo ? hora(c.listo) : '—' }}</td>
+      <td class="num">{{ preparacion(c) }}</td>
+    </tr>
+  }
+</app-tabla-listado>

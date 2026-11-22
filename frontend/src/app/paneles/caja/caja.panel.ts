@@ -1,14 +1,15 @@
 import { ConfiguracionPanel } from '../../core/layout/panel-layout/panel.config';
 
-/** Menú del panel de CAJA: cobros, pagos, división de cuenta y control de caja. */
+/**
+ * Menú del panel de CAJA. Pagos y división de cuenta se hacen dentro de
+ * "Cobros" (al abrir una cuenta), por eso no tienen entrada propia.
+ */
 export const PANEL_CAJA: ConfiguracionPanel = {
   nombre: 'Caja',
   eyebrow: 'Cobros y control',
   menu: [
     { etiqueta: 'Inicio', icono: 'inicio', ruta: '', disponible: true },
-    { etiqueta: 'Cobros', icono: 'caja', ruta: 'cobros' },
-    { etiqueta: 'Pagos', icono: 'pago', ruta: 'pagos' },
-    { etiqueta: 'División de cuenta', icono: 'dividir', ruta: 'division' },
-    { etiqueta: 'Control de caja', icono: 'reloj', ruta: 'control' },
+    { etiqueta: 'Cobros', icono: 'caja', ruta: 'cobros', disponible: true },
+    { etiqueta: 'Control de caja', icono: 'reloj', ruta: 'control', disponible: true },
   ],
 };

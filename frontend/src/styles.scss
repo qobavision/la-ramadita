@@ -5,6 +5,10 @@
 
 @use 'styles/paneles';
 @use 'styles/datos';
+@use 'styles/mesero';
+@use 'styles/caja';
+@use 'styles/cocina';
+@use 'styles/graficos';
 
 :root {
   // Paleta compartida (alineada con el diseño de referencia del equipo)

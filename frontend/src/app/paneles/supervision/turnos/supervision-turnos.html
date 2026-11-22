@@ -56,6 +56,9 @@
           </div>
         }
       </div>
+      @if (turno().alerta; as aviso) {
+        <div class="alert alert-warning py-2 small mt-3 mb-0" role="status">{{ aviso }}</div>
+      }
       <div class="lr-turno__acciones">
         <button type="button" class="btn btn-outline-secondary" (click)="iniciarTurno()" [disabled]="turno().estado !== 'CERRADO'">
           Iniciar turno
@@ -63,7 +66,12 @@
         <button type="button" class="btn btn-outline-secondary" (click)="prepararCierre()" [disabled]="turno().estado !== 'ACTIVO'">
           Preparar cierre
         </button>
-        <button type="button" class="btn btn-primary" (click)="pedirFinalizar()" [disabled]="turno().estado !== 'EN CIERRE'">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="pedirFinalizar()"
+          [disabled]="turno().estado === 'CERRADO' || !!turno().alerta"
+        >
           Finalizar turno
         </button>
       </div>
@@ -184,7 +192,11 @@
 
 @if (dialogo() === 'finalizar') {
   <app-dialogo eyebrow="Configuración" titulo="Finalizar turno" (cerrar)="cerrar()">
-    <p class="mb-3">¿Seguro de finalizar el turno de {{ turno().unidad }}?</p>
+    <p class="mb-2">¿Seguro de finalizar el turno de {{ turno().unidad }}?</p>
+    <p class="small text-muted mb-3">
+      Desde ahora no se aceptan nuevas atenciones. Si quedan mesas o pedidos para llevar por cobrar, o la caja sigue
+      abierta, se terminan de atender y cobrar; el turno se cerrará solo al cobrar lo último y cerrar la caja.
+    </p>
     @if (error(); as texto) {
       <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
     }

@@ -1,3 +1,4 @@
+import { Type } from '@angular/core';
 import { NombreIcono } from '../../../shared/ui/icono/icono';
 
 /** Entrada del menú lateral / inferior de un panel. */
@@ -17,4 +18,9 @@ export interface ConfiguracionPanel {
   /** Rótulo corto sobre el nombre, p. ej. "Panel de control". */
   eyebrow: string;
   menu: ItemMenu[];
+  /**
+   * Componente que acompaña a todas las páginas del panel (p. ej. los avisos
+   * de Cocina en el panel mesero). Se dibuja una vez, fuera del `router-outlet`.
+   */
+  complemento?: Type<unknown>;
 }

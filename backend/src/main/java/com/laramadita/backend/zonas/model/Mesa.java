@@ -56,6 +56,25 @@ public class Mesa {
 		return activo && estado == EstadoMesa.DISPONIBLE;
 	}
 
+	/** Inicio de una atención (M06): Disponible → Ocupada. */
+	public void ocupar() {
+		this.estado = EstadoMesa.OCUPADA;
+	}
+
+	/** El mesero pidió la cuenta (M06/M09): Ocupada → Pendiente de pago. */
+	public void pasarAPendientePago() {
+		this.estado = EstadoMesa.PENDIENTE_PAGO;
+	}
+
+	/** Atención terminada (pago completo o atención sin consumo): vuelve a Disponible. */
+	public void liberar() {
+		this.estado = EstadoMesa.DISPONIBLE;
+	}
+
+	public String nombre() {
+		return "Mesa " + numero;
+	}
+
 	public Integer getId() {
 		return id;
 	}

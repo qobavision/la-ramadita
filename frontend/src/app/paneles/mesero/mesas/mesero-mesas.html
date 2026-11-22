@@ -1,0 +1,65 @@
+<app-encabezado-pagina
+  eyebrow="Salón"
+  titulo="Mesas"
+  descripcion="Toca una mesa libre para iniciar la atención o una ocupada para continuar su pedido."
+>
+  <button
+    acciones
+    type="button"
+    class="btn btn-primary d-inline-flex align-items-center gap-2"
+    [disabled]="ocupado()"
+    (click)="paraLlevar()"
+  >
+    <app-icono nombre="mas" [tamano]="16" />
+    Para llevar
+  </button>
+</app-encabezado-pagina>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<div class="lr-herramientas">
+  <app-segmento etiqueta="Filtrar mesas" [opciones]="filtros" [(valor)]="filtro" />
+  <span class="lr-pildora lr-herramientas__derecha">{{ libres() }} libres de {{ mesas().length }}</span>
+</div>
+
+@if (!cargando() && mesas().length === 0) {
+  <section class="lr-tarjeta">
+    <app-estado-vacio
+      icono="mesas"
+      titulo="No hay mesas habilitadas"
+      descripcion="El supervisor registra las zonas y mesas del local en el panel de Supervisión."
+    />
+  </section>
+}
+
+@for (grupo of zonas(); track grupo.zona) {
+  <h2 class="lr-seccion">{{ grupo.zona }}</h2>
+  <div class="lr-salon">
+    @for (m of grupo.mesas; track m.id) {
+      <button
+        type="button"
+        class="lr-mesa"
+        [class.lr-mesa--ocupada]="m.estado === 'OCUPADA'"
+        [class.lr-mesa--pendiente]="m.estado === 'PENDIENTE_PAGO'"
+        [disabled]="ocupado()"
+        (click)="seleccionar(m)"
+      >
+        <span class="lr-mesa__cabecera">
+          <strong>{{ m.nombre }}</strong>
+          <span class="lr-mesa__estado">{{ etiquetaEstado[m.estado] }}</span>
+        </span>
+        @if (m.atencion; as a) {
+          <small>{{ a.mesero }}</small>
+          <small class="lr-mesa__dato">
+            <app-icono nombre="reloj" [tamano]="12" />
+            {{ tiempo(a.inicio) }} · {{ soles(a.total) }}
+          </small>
+        } @else {
+          <small>Toca para atender</small>
+        }
+      </button>
+    }
+  </div>
+}

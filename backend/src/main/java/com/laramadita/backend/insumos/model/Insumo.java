@@ -82,6 +82,22 @@ public class Insumo {
 		return anterior;
 	}
 
+	/**
+	 * Consumo por receta (M04): descuenta lo requerido sin dejar el stock en
+	 * negativo. Devuelve lo realmente descontado (cero si no había stock).
+	 */
+	public BigDecimal consumir(BigDecimal requerido) {
+		if (requerido == null || requerido.signum() <= 0) {
+			return BigDecimal.ZERO;
+		}
+		BigDecimal descontado = requerido.min(this.stockActual);
+		if (descontado.signum() <= 0) {
+			return BigDecimal.ZERO;
+		}
+		this.stockActual = this.stockActual.subtract(descontado);
+		return descontado;
+	}
+
 	public void activar() {
 		this.activo = true;
 	}

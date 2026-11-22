@@ -1,20 +1,44 @@
 <app-encabezado-pagina
   eyebrow="Resumen ejecutivo"
   titulo="Dashboard"
-  descripcion="Vista rápida del negocio para tomar decisiones. Los indicadores se llenarán con las ventas, la caja y el inventario registrados en el sistema."
+  descripcion="Vista rápida del negocio con las ventas cobradas, la caja y el inventario registrados en el sistema."
 >
   <span acciones class="lr-pildora">{{ contexto() }}</span>
 </app-encabezado-pagina>
 
-<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" />
+<app-filtros-consulta [(periodo)]="periodo" [(unidad)]="unidad" [(desde)]="desde" [(hasta)]="hasta" />
 
-<section class="lr-rejilla" aria-label="Indicadores principales">
-  @for (kpi of indicadores; track kpi.etiqueta) {
-    <article class="lr-kpi">
-      <span>{{ kpi.etiqueta }}</span>
-      <strong aria-label="Sin datos">—</strong>
-      <small>{{ kpi.nota }}</small>
-      <app-icono [nombre]="kpi.icono" [tamano]="18" />
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+<section class="lr-rejilla" aria-label="Indicadores principales" [attr.aria-busy]="cargando()">
+  <article class="lr-kpi lr-kpi--lleno">
+    <span>Ventas del periodo</span>
+    <strong>{{ resumen() ? soles(resumen()!.total) : '—' }}</strong>
+    <small>{{ resumen() ? resumen()!.ventas + ' ventas cobradas' : 'Cargando…' }}</small>
+    <app-icono nombre="ventas" [tamano]="18" />
+  </article>
+  <article class="lr-kpi lr-kpi--lleno">
+    <span>Ticket promedio</span>
+    <strong>{{ resumen() ? soles(resumen()!.ticketPromedio) : '—' }}</strong>
+    <small>Total cobrado entre número de ventas</small>
+    <app-icono nombre="pago" [tamano]="18" />
+  </article>
+  @if (unidad() !== 'polleria') {
+    <article class="lr-kpi lr-kpi--lleno">
+      <span>Ventas Restaurante</span>
+      <strong>{{ totalUnidad('RESTAURANTE') === null ? '—' : soles(totalUnidad('RESTAURANTE')!) }}</strong>
+      <small>{{ participacion('RESTAURANTE') }} del total</small>
+      <app-icono nombre="productos" [tamano]="18" />
+    </article>
+  }
+  @if (unidad() !== 'restaurante') {
+    <article class="lr-kpi lr-kpi--lleno">
+      <span>Ventas Pollería</span>
+      <strong>{{ totalUnidad('POLLERIA') === null ? '—' : soles(totalUnidad('POLLERIA')!) }}</strong>
+      <small>{{ participacion('POLLERIA') }} del total</small>
+      <app-icono nombre="llama" [tamano]="18" />
     </article>
   }
 </section>
@@ -22,57 +46,123 @@
 <h2 class="lr-seccion">Ventas</h2>
 
 <div class="lr-dashboard-fila">
-  <app-bloque-grafico
-    titulo="Evolución de ventas"
-    descripcion="Ventas por día dentro del periodo elegido"
-    icono="tendencia"
-    tipo="barras"
-  />
-  <app-bloque-grafico
-    titulo="Restaurante vs Pollería"
-    descripcion="Participación de cada unidad en el resultado consolidado"
-    icono="dona"
-    tipo="dona"
-  />
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Evolución de ventas">
+    <header>
+      <div>
+        <h3>Evolución de ventas</h3>
+        <p>Total cobrado por día operativo (fecha de apertura del turno)</p>
+      </div>
+      <app-icono nombre="tendencia" [tamano]="18" />
+    </header>
+    <app-grafico-columnas [puntos]="porDia()" [formato]="soles" aviso="Sin ventas cobradas en el periodo" />
+  </section>
+
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Restaurante vs Pollería">
+    <header>
+      <div>
+        <h3>Restaurante vs Pollería</h3>
+        <p>Participación de cada unidad en lo cobrado</p>
+      </div>
+      <app-icono nombre="dona" [tamano]="18" />
+    </header>
+    <app-grafico-participacion [segmentos]="unidades()" />
+  </section>
 </div>
 
 <div class="lr-dashboard-fila lr-dashboard-fila--tercios">
-  <app-bloque-grafico titulo="Platos más vendidos" descripcion="Ranking por cantidad vendida" icono="productos" tipo="lista" />
-  <app-bloque-grafico titulo="Horarios de mayor venta" descripcion="Ventas por franja horaria" icono="reloj" tipo="barras" />
-  <app-bloque-grafico
-    titulo="Ventas por método de pago"
-    descripcion="Efectivo, Yape, Plin, Tarjeta y Transferencia"
-    icono="pago"
-    tipo="lista"
-    nota="Disponible cuando existan pagos registrados"
-  >
-    <footer pie>
-      <span class="lr-leyenda">
-        @for (m of metodosPago; track m) {
-          <span class="lr-pildora">{{ m }}</span>
-        }
-      </span>
-    </footer>
-  </app-bloque-grafico>
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Platos más vendidos">
+    <header>
+      <div>
+        <h3>Platos más vendidos</h3>
+        <p>Ranking por cantidad vendida</p>
+      </div>
+      <app-icono nombre="productos" [tamano]="18" />
+    </header>
+    <app-grafico-ranking [filas]="platos()" [numerado]="true" aviso="Sin platos vendidos en el periodo" />
+  </section>
+
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Horarios de mayor venta">
+    <header>
+      <div>
+        <h3>Horarios de mayor venta</h3>
+        <p>Total cobrado por franja horaria</p>
+      </div>
+      <app-icono nombre="reloj" [tamano]="18" />
+    </header>
+    <app-grafico-columnas [puntos]="porHora()" [formato]="soles" aviso="Sin ventas cobradas en el periodo" />
+  </section>
+
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Ventas por método de pago">
+    <header>
+      <div>
+        <h3>Ventas por método de pago</h3>
+        <p>Efectivo, Yape, Plin, Tarjeta y Transferencia</p>
+      </div>
+      <app-icono nombre="pago" [tamano]="18" />
+    </header>
+    <app-grafico-ranking [filas]="metodos()" aviso="Sin pagos registrados en el periodo" />
+  </section>
 </div>
 
 <h2 class="lr-seccion">Caja e inventario</h2>
 
 <div class="lr-dashboard-fila lr-dashboard-fila--mitades">
-  <app-bloque-grafico
-    titulo="Últimos cierres de caja"
-    descripcion="Cierres recientes y diferencias entre efectivo esperado y contado"
-    icono="caja"
-    tipo="lista"
-    aviso="Sin cierres registrados"
-    nota="Disponible con control de caja (M10)"
-  />
-  <app-bloque-grafico
-    titulo="Alertas de stock"
-    descripcion="Insumos por debajo de su stock mínimo"
-    icono="alerta"
-    tipo="lista"
-    aviso="Sin alertas"
-    nota="Disponible con inventario (M04)"
-  />
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Últimos cierres de caja">
+    <header>
+      <div>
+        <h3>Últimos cierres de caja</h3>
+        <p>Diferencia entre efectivo esperado y contado</p>
+      </div>
+      <app-icono nombre="caja" [tamano]="18" />
+    </header>
+    @if (ultimosCierres().length === 0) {
+      <p class="lr-grafico-vacio">{{ cierres() === null ? 'Cargando…' : 'Sin cierres de caja registrados' }}</p>
+    } @else {
+      <ul class="lr-alertas-stock">
+        @for (s of ultimosCierres(); track s.id) {
+          <li>
+            <span>
+              <strong>{{ s.responsable }}</strong>
+              <small class="d-block">{{ s.unidad }} · cierre {{ hora(s.cierre) }}</small>
+            </span>
+            <span
+              class="lr-estado"
+              [class.lr-estado--activo]="(s.diferencia ?? 0) === 0"
+              [class.lr-estado--alerta]="(s.diferencia ?? 0) !== 0"
+            >
+              {{ (s.diferencia ?? 0) === 0 ? 'Cuadra' : 'Diferencia ' + soles(s.diferencia ?? 0) }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="lr-tarjeta lr-bloque lr-bloque--datos" aria-label="Alertas de stock">
+    <header>
+      <div>
+        <h3>Alertas de stock</h3>
+        <p>Insumos agotados o por debajo de su stock mínimo</p>
+      </div>
+      <app-icono nombre="alerta" [tamano]="18" />
+    </header>
+    @if (!resumen() || resumen()!.alertasStock.length === 0) {
+      <p class="lr-grafico-vacio">{{ resumen() ? 'Sin alertas: todo el inventario está sobre su mínimo' : 'Cargando…' }}</p>
+    } @else {
+      <ul class="lr-alertas-stock">
+        @for (a of resumen()!.alertasStock.slice(0, 6); track a.insumoId) {
+          <li>
+            <span>
+              <strong>{{ a.insumo }}</strong>
+              <small class="d-block">Stock {{ a.stockActual }} · mínimo {{ a.stockMinimo }} · {{ unidadMedida(a.unidadMedida) }}</small>
+            </span>
+            <span class="lr-estado lr-estado--alerta">
+              <app-icono nombre="alerta" [tamano]="12" />
+              {{ a.estado === 'AGOTADO' ? 'Agotado' : 'Stock bajo' }}
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
 </div>

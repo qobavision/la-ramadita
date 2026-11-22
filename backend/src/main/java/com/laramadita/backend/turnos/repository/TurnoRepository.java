@@ -28,4 +28,16 @@ public interface TurnoRepository extends JpaRepository<Turno, Integer> {
 
 	@EntityGraph(attributePaths = { "unidad", "usuarioApertura", "usuarioCierre" })
 	Optional<Turno> findFirstByEstadoOrderByFechaCierreDesc(EstadoTurno estado);
+
+	/** Atenciones del turno sin cobrar (abiertas o pendientes de pago): impiden finalizarlo. */
+	@Query(value = """
+			SELECT COUNT(*) FROM dbo.atenciones
+			WHERE turno_id = :turnoId AND estado IN (N'ABIERTA', N'PENDIENTE_PAGO')
+			""", nativeQuery = true)
+	long contarAtencionesSinCobrar(@Param("turnoId") Integer turnoId);
+
+	/** Cajas del turno todavía abiertas: impiden finalizarlo. */
+	@Query(value = "SELECT COUNT(*) FROM dbo.caja_sesiones WHERE turno_id = :turnoId AND estado = N'ABIERTA'",
+			nativeQuery = true)
+	long contarCajasAbiertas(@Param("turnoId") Integer turnoId);
 }

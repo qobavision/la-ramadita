@@ -1,0 +1,98 @@
+<app-encabezado-pagina
+  eyebrow="Caja"
+  titulo="Control de caja"
+  descripcion="Apertura, ingresos y egresos, pagos por método y cierre con arqueo de efectivo."
+>
+  @if (caja(); as c) {
+    <span acciones class="lr-estado lr-estado--abierta">Abierta desde {{ hora(c.apertura) }}</span>
+  }
+</app-encabezado-pagina>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+@if (cerrada(); as c) {
+  <div class="alert py-2 small" [class.alert-success]="c.diferencia === 0" [class.alert-warning]="c.diferencia !== 0" role="status">
+    Caja cerrada. Esperado {{ soles(c.efectivoEsperado) }} · contado {{ soles(c.efectivoContado ?? 0) }} ·
+    diferencia {{ soles(c.diferencia ?? 0) }}{{ c.observacionCierre ? ' · ' + c.observacionCierre : '' }}
+  </div>
+}
+
+@if (!cargando() && !caja()) {
+  <section class="lr-tarjeta lr-ticket" aria-label="Abrir caja">
+    <h2>Abrir caja</h2>
+    <p class="lr-nota">Registra el efectivo con el que inicias (sencillo). Hay una caja por turno, compartida por quienes cobran; cada pago y movimiento guarda quién lo registró.</p>
+    <label class="form-label small mb-0" for="inicial">Monto inicial</label>
+    <input id="inicial" class="form-control" type="number" min="0" step="0.10" [value]="montoInicial() ?? ''" (input)="montoInicial.set(numero($event))" />
+    <button type="button" class="btn btn-primary" [disabled]="ocupado() || montoInicial() == null || montoInicial()! < 0" (click)="abrir()">
+      Abrir caja
+    </button>
+  </section>
+}
+
+@if (caja(); as c) {
+  <section class="lr-rejilla lr-rejilla--ancha" aria-label="Resumen de caja">
+    <article class="lr-kpi"><span>Monto inicial</span><strong>{{ soles(c.montoInicial) }}</strong><small>{{ c.unidad }}</small><app-icono nombre="caja" [tamano]="18" /></article>
+    <article class="lr-kpi"><span>Total cobrado</span><strong>{{ soles(c.totalCobrado) }}</strong><small>{{ c.pagos.length }} pagos</small><app-icono nombre="pago" [tamano]="18" /></article>
+    <article class="lr-kpi"><span>Ingresos / egresos</span><strong>{{ soles(c.ingresos - c.egresos) }}</strong><small>+{{ soles(c.ingresos) }} · −{{ soles(c.egresos) }}</small><app-icono nombre="historial" [tamano]="18" /></article>
+    <article class="lr-kpi"><span>Efectivo esperado</span><strong>{{ soles(c.efectivoEsperado) }}</strong><small>Inicial + efectivo + ingresos − egresos</small><app-icono nombre="reloj" [tamano]="18" /></article>
+  </section>
+
+  <div class="lr-atencion">
+    <section class="lr-tarjeta lr-atencion__carta" aria-label="Movimientos">
+      <h2>Pagos por método</h2>
+      @for (m of c.porMetodo; track m.metodo) {
+        <div class="lr-ticket__producto"><span>{{ etiquetaMetodo(m.metodo) }}</span><strong>{{ soles(m.total) }}</strong></div>
+      } @empty {
+        <p class="lr-nota">Aún no se registraron cobros en esta caja.</p>
+      }
+
+      <h2>Ingresos y egresos</h2>
+      <app-segmento etiqueta="Tipo de movimiento" [opciones]="tipos" [(valor)]="tipo" />
+      <div class="d-flex flex-wrap gap-2">
+        <input class="form-control" style="max-width: 140px" type="number" min="0" step="0.10" placeholder="Monto" [value]="montoMovimiento() ?? ''" (input)="montoMovimiento.set(numero($event))" />
+        <input class="form-control flex-grow-1" style="min-width: 0; flex-basis: 200px" type="text" maxlength="300" placeholder="Motivo (p. ej. compra de hielo)" [value]="motivo()" (input)="motivo.set($any($event.target).value)" />
+        <button type="button" class="btn btn-outline-primary" [disabled]="ocupado() || !montoMovimiento() || !motivo().trim()" (click)="registrarMovimiento()">Registrar</button>
+      </div>
+      @for (m of c.movimientos; track m.id) {
+        <div class="lr-ticket__producto">
+          <span>{{ hora(m.fecha) }} · {{ m.motivo }}</span>
+          <strong>{{ m.tipo === 'EGRESO' ? '−' : '+' }}{{ soles(m.monto) }}</strong>
+        </div>
+      }
+
+      <h2>Pagos recibidos</h2>
+      @for (p of c.pagos; track p.id) {
+        <div class="lr-ticket__producto">
+          <span>{{ hora(p.fecha) }} · {{ p.identificacion }} · {{ etiquetaMetodo(p.metodo) }}</span>
+          <strong>{{ soles(p.monto) }}</strong>
+        </div>
+      }
+    </section>
+
+    <section class="lr-tarjeta lr-ticket" aria-label="Cierre de caja">
+      <h2>Cerrar caja</h2>
+      <div class="lr-ticket__total"><span>Efectivo esperado</span><strong>{{ soles(c.efectivoEsperado) }}</strong></div>
+      <label class="form-label small mb-0" for="contado">Efectivo contado</label>
+      <input id="contado" class="form-control" type="number" min="0" step="0.10" [value]="contado() ?? ''" (input)="contado.set(numero($event))" />
+      @if (diferencia() !== null) {
+        <div class="lr-ticket__total lr-ticket__total--consumo"><span>Diferencia</span><strong>{{ soles(diferencia()!) }}</strong></div>
+      }
+      <textarea class="form-control" rows="2" maxlength="500" [placeholder]="diferencia() ? 'Observación (obligatoria si hay diferencia)' : 'Observación (opcional)'" [value]="observacion()" (input)="observacion.set($any($event.target).value)"></textarea>
+      <button type="button" class="btn btn-primary w-100" [disabled]="ocupado() || contado() == null || (!!diferencia() && !observacion().trim())" (click)="confirmarCierre.set(true)">
+        Cerrar caja
+      </button>
+    </section>
+  </div>
+
+  @if (confirmarCierre()) {
+    <app-dialogo eyebrow="Caja" titulo="Cerrar caja" (cerrar)="confirmarCierre.set(false)">
+      <p>Se registrará el cierre con {{ soles(contado() ?? 0) }} contados frente a {{ soles(c.efectivoEsperado) }} esperados. Después no podrás registrar cobros en esta caja.</p>
+      <div class="lr-formulario__pie">
+        <button type="button" class="btn btn-outline-secondary" (click)="confirmarCierre.set(false)">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="cerrar()">Cerrar caja</button>
+      </div>
+    </app-dialogo>
+  }
+}

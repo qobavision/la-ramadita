@@ -117,11 +117,20 @@ export function compararInactivos<T extends { activo: boolean; archivado: boolea
   return Number(a.archivado) - Number(b.archivado);
 }
 
+/**
+ * Fecha y hora local (dd/mm/aaaa hh:mm) de un instante del backend.
+ *
+ * El backend guarda siempre en UTC. Algunos DTO envían `LocalDateTime` sin
+ * zona ("2026-11-22T20:00:00"); `new Date` lo leería como hora local y lo
+ * mostraría 5 horas adelantado, así que sin zona se interpreta como UTC.
+ * Los valores que ya traen `Z` u offset no cambian.
+ */
 export function formatearFechaHora(iso: string | null | undefined): string {
   if (!iso) {
     return '—';
   }
-  const fecha = new Date(iso);
+  const sinZona = iso.includes('T') && !/(Z|[+-]\d{2}:?\d{2})$/i.test(iso);
+  const fecha = new Date(sinZona ? `${iso}Z` : iso);
   if (Number.isNaN(fecha.getTime())) {
     return '—';
   }

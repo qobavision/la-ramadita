@@ -169,8 +169,9 @@ export class SupervisionCompras {
     return this.puedeEditar(compra);
   }
 
+  /** Proveedores antiguos (antes de V7) pueden no tener documento registrado. */
   protected documentoDe(p: ProveedorDemo): string {
-    return `${p.tipoDocumento} ${p.documento}`;
+    return p.documento ? `${p.tipoDocumento ?? ''} ${p.documento}`.trim() : 'Sin documento';
   }
 
   protected longitudDoc(): number {

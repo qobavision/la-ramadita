@@ -1,23 +1,30 @@
 <app-encabezado-pagina
   eyebrow="Caja"
   titulo="Cobros y control de caja"
-  descripcion="Cobro de cuentas, registro de pagos y control del turno. Las funciones se habilitarán con los módulos M09 y M10."
+  descripcion="Cobro de cuentas del salón y pedidos para llevar, y control del efectivo de tu caja."
 >
-  <span acciones class="lr-pildora">Sin turno de caja abierto</span>
+  <span acciones class="lr-estado" [class.lr-estado--abierta]="caja()">
+    {{ caja() ? 'Caja abierta desde ' + hora(caja()!.apertura) : 'Caja sin abrir' }}
+  </span>
 </app-encabezado-pagina>
 
 <section class="lr-rejilla lr-rejilla--ancha" aria-label="Estado de caja">
-  <article class="lr-tarjeta lr-columna lr-columna--pendiente">
-    <header>
-      Cuentas por cobrar
-      <small>0</small>
-    </header>
-    <div>Las cuentas que el salón envíe a caja aparecerán aquí.<br />Próximamente.</div>
+  <article class="lr-kpi">
+    <span>Cuentas por cobrar</span>
+    <strong>{{ cuentas().length }}</strong>
+    <small>Saldo pendiente {{ soles(porCobrar()) }}</small>
+    <app-icono nombre="caja" [tamano]="18" />
   </article>
   <article class="lr-kpi">
-    <span>Turno de caja</span>
-    <strong aria-label="Sin datos">—</strong>
-    <small>Apertura y cierre disponibles con M10</small>
+    <span>Cobrado en la caja del turno</span>
+    <strong>{{ caja() ? soles(caja()!.totalCobrado) : '—' }}</strong>
+    <small>{{ caja() ? caja()!.pagos.length + ' pagos · ' + caja()!.unidad : 'Abre tu caja en Control de caja' }}</small>
+    <app-icono nombre="pago" [tamano]="18" />
+  </article>
+  <article class="lr-kpi">
+    <span>Efectivo esperado</span>
+    <strong>{{ caja() ? soles(caja()!.efectivoEsperado) : '—' }}</strong>
+    <small>Inicial + efectivo + ingresos − egresos</small>
     <app-icono nombre="reloj" [tamano]="18" />
   </article>
 </section>

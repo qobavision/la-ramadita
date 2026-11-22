@@ -1,0 +1,138 @@
+@if (cuenta(); as c) {
+  <app-encabezado-pagina
+    [eyebrow]="c.tipo === 'MESA' ? 'Cobro · ' + c.zona : 'Cobro · Para llevar'"
+    [titulo]="c.identificacion"
+    [descripcion]="'Atendió ' + c.mesero + ' · ' + c.unidad"
+  >
+    <a acciones class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" routerLink="/caja/cobros">
+      <app-icono nombre="volver" [tamano]="16" />
+      Cobros
+    </a>
+  </app-encabezado-pagina>
+
+  @if (error(); as texto) {
+    <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  }
+  @if (c.estado === 'PAGADO') {
+    <div class="alert alert-success py-2 small d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+      <span>Cuenta pagada. La atención quedó cerrada{{ c.tipo === 'MESA' ? ' y la mesa está libre' : '' }}.</span>
+      @if (c.total > 0) {
+        <button type="button" class="btn btn-sm btn-outline-success" (click)="verBoleta.set(true)">Ver boleta</button>
+      }
+    </div>
+    @if (verBoleta()) {
+      <app-caja-boleta [atencionId]="c.atencionId" (cerrar)="verBoleta.set(false)" />
+    }
+  } @else if (!caja()) {
+    <div class="alert alert-warning py-2 small" role="status">
+      Para registrar pagos primero abre la caja del turno en <a routerLink="/caja/control">Control de caja</a>.
+    </div>
+  }
+
+  <div class="lr-atencion">
+    <section class="lr-tarjeta lr-atencion__carta" aria-label="Consumo">
+      <header class="lr-atencion__cabecera">
+        <h2>Consumo</h2>
+        @if (pendiente()) {
+          <app-segmento etiqueta="Forma de dividir" [opciones]="modos" [(valor)]="modo" />
+        }
+      </header>
+      <div class="lr-tabla-marco">
+        <table class="lr-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th class="text-end">Cant.</th>
+              <th class="text-end">Precio</th>
+              <th class="text-end">Subtotal</th>
+              <th class="text-end">Pagado</th>
+              @if (modo() === 'PRODUCTOS' && pendiente()) {
+                <th class="text-end">A pagar</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of c.lineas; track l.pedidoDetalleId) {
+              <tr>
+                <td>
+                  {{ l.producto }}
+                  @if (l.observacion) {
+                    <small class="d-block text-muted">{{ l.observacion }}</small>
+                  }
+                </td>
+                <td class="text-end">{{ l.cantidad }}</td>
+                <td class="text-end">{{ soles(l.precioUnitario) }}</td>
+                <td class="text-end">{{ soles(l.subtotal) }}</td>
+                <td class="text-end">{{ l.cantidadPagada }}</td>
+                @if (modo() === 'PRODUCTOS' && pendiente()) {
+                  <td class="text-end">
+                    <div class="lr-cantidad">
+                      <button type="button" aria-label="Uno menos" [disabled]="cantidad(l) === 0" (click)="cambiarCantidad(l, -1)">−</button>
+                      <span>{{ cantidad(l) }}</span>
+                      <button type="button" aria-label="Uno más" [disabled]="cantidad(l) >= l.cantidadPendiente" (click)="cambiarCantidad(l, 1)">+</button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="lr-tarjeta lr-ticket" aria-label="Pago">
+      <div class="lr-ticket__total"><span>Total</span><strong>{{ soles(c.total) }}</strong></div>
+      <div class="lr-ticket__total"><span>Pagado</span><strong>{{ soles(c.pagado) }}</strong></div>
+      <div class="lr-ticket__total lr-ticket__total--consumo"><span>Saldo pendiente</span><strong>{{ soles(c.saldo) }}</strong></div>
+
+      @if (pendiente()) {
+        <h2>Registrar pago</h2>
+        <app-segmento etiqueta="Método de pago" [opciones]="metodos()" [(valor)]="metodo" />
+
+        @if (modo() === 'MONTO') {
+          <label class="form-label small mb-0" for="monto">Monto a pagar</label>
+          <input id="monto" class="form-control" type="number" min="0" step="0.10" [value]="monto() ?? ''" (input)="monto.set(numero($event))" />
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="dividir(1)">Saldo completo</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="dividir(2)">÷ 2</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="dividir(3)">÷ 3</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="dividir(4)">÷ 4</button>
+          </div>
+        } @else {
+          <div class="lr-ticket__total"><span>Productos seleccionados</span><strong>{{ soles(montoProductos()) }}</strong></div>
+        }
+
+        @if (metodo() === 'EFECTIVO') {
+          <label class="form-label small mb-0" for="recibido">Efectivo recibido (opcional)</label>
+          <input id="recibido" class="form-control" type="number" min="0" step="0.10" [value]="recibido() ?? ''" (input)="recibido.set(numero($event))" />
+          @if (vuelto() !== null) {
+            <div class="lr-ticket__total">
+              <span>{{ vuelto()! >= 0 ? 'Vuelto' : 'Falta' }}</span>
+              <strong>{{ soles(vuelto()! >= 0 ? vuelto()! : -vuelto()!) }}</strong>
+            </div>
+          }
+        }
+
+        <input class="form-control form-control-sm" type="text" maxlength="300" placeholder="Observación (opcional)" [value]="observacion()" (input)="observacion.set($any($event.target).value)" />
+
+        <button type="button" class="btn btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-2" [disabled]="!puedePagar()" (click)="pagar()">
+          <app-icono nombre="pago" [tamano]="18" />
+          Registrar pago de {{ soles(montoAPagar()) }}
+        </button>
+      }
+
+      <h2>Pagos registrados</h2>
+      @for (p of c.pagos; track p.id) {
+        <div class="lr-ticket__producto">
+          <span>{{ etiquetaMetodo(p.metodo) }} · {{ hora(p.fecha) }}{{ p.porProductos ? ' · por productos' : '' }}</span>
+          <strong>{{ soles(p.monto) }}</strong>
+        </div>
+      } @empty {
+        <p class="lr-nota">Todavía no hay pagos.</p>
+      }
+    </section>
+  </div>
+} @else if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+  <a class="btn btn-outline-secondary" routerLink="/caja/cobros">Volver a cobros</a>
+}

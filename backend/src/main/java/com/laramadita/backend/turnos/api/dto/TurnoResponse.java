@@ -15,7 +15,8 @@ public record TurnoResponse(
 		String horaInicio,
 		String horaFin,
 		String responsable,
-		String cerradoPor) {
+		String cerradoPor,
+		String cierreSolicitadoPor) {
 
 	private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -28,7 +29,8 @@ public record TurnoResponse(
 				horario.getHoraInicio().format(HORA),
 				horario.getHoraFin().format(HORA),
 				nombreDe(turno.getUsuarioApertura(), "Apertura automática"),
-				nombreDe(turno.getUsuarioCierre(), ""));
+				nombreDe(turno.getUsuarioCierre(), ""),
+				nombreDe(turno.getCierreSolicitadoPor(), ""));
 	}
 
 	public static TurnoResponse cerrado(NombreUnidad unidad, HorarioOperacion horario) {
@@ -39,6 +41,7 @@ public record TurnoResponse(
 				EstadoTurno.CERRADO.name(),
 				horario.getHoraInicio().format(HORA),
 				horario.getHoraFin().format(HORA),
+				"",
 				"",
 				"");
 	}

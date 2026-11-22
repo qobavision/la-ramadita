@@ -1,0 +1,39 @@
+<app-encabezado-pagina
+  eyebrow="Caja"
+  titulo="Cobros pendientes"
+  descripcion="Cuentas que el salón envió a caja. Se actualizan solas cuando un mesero pide la cuenta."
+/>
+
+@if (error(); as texto) {
+  <div class="alert alert-danger py-2 small" role="alert">{{ texto }}</div>
+}
+
+@if (!cargando() && cuentas().length === 0) {
+  <section class="lr-tarjeta">
+    <app-estado-vacio
+      icono="caja"
+      titulo="No hay cuentas por cobrar"
+      descripcion="Cuando un mesero pida la cuenta de una mesa o de un pedido para llevar, aparecerá aquí."
+    />
+  </section>
+} @else {
+  <div class="lr-rejilla lr-rejilla--ancha">
+    @for (c of cuentas(); track c.atencionId) {
+      <a class="lr-tarjeta lr-pedido" [routerLink]="['/caja', 'cobros', c.atencionId]">
+        <header class="lr-pedido__cabecera">
+          <strong>{{ c.identificacion }}</strong>
+          <span class="lr-estado lr-estado--alerta">{{ c.pagado > 0 ? 'Pago parcial' : 'Por cobrar' }}</span>
+        </header>
+        <small>{{ c.zona ?? 'Para llevar' }} · {{ c.mesero }} · {{ tiempo(c.inicio) }}</small>
+        <div class="lr-pedido__conteo">
+          <span>Total <strong>{{ soles(c.total) }}</strong></span>
+          <span>Pagado <strong>{{ soles(c.pagado) }}</strong></span>
+        </div>
+        <div class="lr-ticket__total lr-ticket__total--consumo">
+          <span>Saldo</span>
+          <strong>{{ soles(c.saldo) }}</strong>
+        </div>
+      </a>
+    }
+  </div>
+}

@@ -88,6 +88,24 @@ public class InventarioMovimiento {
 		return movimiento;
 	}
 
+	/** Consumo por receta de una línea de pedido preparada en Cocina. */
+	public static InventarioMovimiento salidaReceta(Insumo insumo, Usuario usuario, Integer pedidoDetalleId,
+			Integer unidadNegocioId, Integer turnoId, BigDecimal cantidad, BigDecimal stockAnterior,
+			BigDecimal stockNuevo, String motivo) {
+		InventarioMovimiento movimiento = new InventarioMovimiento();
+		movimiento.insumo = insumo;
+		movimiento.usuario = usuario;
+		movimiento.pedidoDetalleId = pedidoDetalleId;
+		movimiento.unidadNegocioId = unidadNegocioId;
+		movimiento.turnoId = turnoId;
+		movimiento.tipoMovimiento = TipoMovimientoInventario.SALIDA_RECETA;
+		movimiento.cantidad = cantidad;
+		movimiento.stockAnterior = stockAnterior;
+		movimiento.stockNuevo = stockNuevo;
+		movimiento.motivo = motivo;
+		return movimiento;
+	}
+
 	@PrePersist
 	void alCrear() {
 		if (fechaMovimiento == null) {
